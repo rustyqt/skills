@@ -13,19 +13,27 @@ subdirectory is one skill — drop it into a project's `.claude/skills/` folder 
 
 ## Installation
 
-```bash
-# Per-project (recommended)
-cd <your-project>
-mkdir -p .claude/skills
-git clone https://github.com/rustyqt/skills.git .claude/skills/_tmp
-mv .claude/skills/_tmp/open-logic-* .claude/skills/
-rm -rf .claude/skills/_tmp
+Clone directly into the `.claude/skills/` folder you want Claude Code to read from. The repo
+layout *is* the skills-folder layout, so no extra moves are needed.
 
-# Or globally
+```bash
+# Per-project (recommended): from your project root
+git clone https://github.com/rustyqt/skills.git .claude/skills
+
+# Or globally for every project
 git clone https://github.com/rustyqt/skills.git ~/.claude/skills
 ```
 
-`wavequery.py` requires Python with `vcdvcd` installed:
+If `.claude/skills/` already exists with other skills, clone into a subfolder and symlink (or copy)
+the ones you want:
+
+```bash
+git clone https://github.com/rustyqt/skills.git .claude/skills/rustyqt
+ln -s rustyqt/open-logic-dev .claude/skills/
+ln -s rustyqt/open-logic-dbg .claude/skills/
+```
+
+`wavequery.py` (used by `open-logic-dbg`) needs Python with `vcdvcd`:
 
 ```bash
 python -m pip install vcdvcd
