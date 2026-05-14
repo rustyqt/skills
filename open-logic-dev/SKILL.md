@@ -1,0 +1,635 @@
+---
+name: open-logic-dev
+description: Guides the development of a new Open Logic entity through a mandatory six-phase workflow (proposal → entity declaration → RTL → testbench → documentation → integration & verification) with a user-review checkpoint at the end of every phase. Use when the user asks to create, develop, design, contribute, add, or implement a new VHDL entity, area, or module for the Open Logic library.
+---
+
+# Open Logic — New-Entity Development Workflow
+
+This skill guides the development of a new entity for the **Open Logic** VHDL library
+([open-logic/open-logic](https://github.com/open-logic/open-logic)). It is **the** workflow for adding any new
+production entity to the repository. Do not skip or reorder the phases — Open Logic is contribution-driven and
+every phase produces a deliverable that has to be reviewed before the next phase starts.
+
+The official contribution rules and coding conventions are in:
+
+- `Contributing.md` (repo root) — Larger Features procedure (Issue → fork → branch `feature/<name>` → PR to `develop`).
+- `doc/Conventions.md` — entity / port / generic / signal / type naming rules. **Read this before writing any RTL.**
+- `doc/HowTo.md` — using Open Logic with various tools (Questa, Vivado, Quartus, Libero, Efinity, Gowin, Yosys, FuseSoC).
+- `doc/CI-Workflows.md` — what CI runs on every PR (HDL-Check on GHDL + NVC + VSG lint; Coverage / Synthesis / FuseSoC tests on the AWS runner for PRs to `main`).
+
+## Phase Overview
+
+```
+1) Proposal & interface       → issue / proposal note + entity declaration
+2) RTL implementation         → src/<area>/vhdl/olo_<area>_<function>.vhd
+3) Testbench                  → test/<area>/olo_<area>_<function>/olo_<area>_<function>_tb.vhd
+                                + sim/test_configs/olo_<area>.py entry
+4) Documentation              → doc/<area>/olo_<area>_<function>.md
+                                + doc/EntityList.md entry
+5) Integration                → compile_order.txt regenerated
+                                + Changelog.md entry
+                                + tools/inference_test/yaml/<area>.yml entry (optional)
+6) Verification & lint        → full regression on GHDL (and NVC if installed)
+                                + VSG lint clean
+                                + Coverage check (if Questa is available)
+```
+
+Track progress with a checklist (in the conversation, not on disk):
+
+```
+Entity: olo_<area>_<function>
+- [ ] Phase 1: Proposal & entity declaration approved
+- [ ] Phase 2: RTL implemented
+- [ ] Phase 3: Testbench passing on GHDL
+- [ ] Phase 4: Documentation written, entity added to EntityList
+- [ ] Phase 5: compile_order / Changelog / inference-test entries added
+- [ ] Phase 6: Full regression green, lint clean
+```
+
+**Hard rule — present every phase's deliverable to the user and wait for explicit approval before moving to the next phase.** Do not chain phases automatically.
+
+---
+
+## Repository Layout (what every entity touches)
+
+Open Logic is organised by **area**, not by per-module folder. A single new entity touches files in five trees:
+
+| Tree | Per-entity file | Notes |
+| --- | --- | --- |
+| `src/<area>/vhdl/` | `olo_<area>_<function>.vhd` | RTL source, single file per entity |
+| `test/<area>/<entity-name>/` | `<entity-name>_tb.vhd` | VUnit testbench (folder named after the entity) |
+| `sim/test_configs/` | append to `olo_<area>.py` | parameter sweep registered with VUnit |
+| `doc/<area>/` | `<entity-name>.md` + entry in `doc/EntityList.md` | per-entity doc + ToC |
+| `tools/inference_test/yaml/` | append to `<area>.yml` (optional) | synthesis inference for the entity |
+
+Cross-cutting files updated once per entity:
+
+| File | What to update |
+| --- | --- |
+| `compile_order.txt` | regenerated via `python sim/run.py --compile_list` (do **not** edit by hand) |
+| `Changelog.md` | new bullet under the upcoming version |
+
+Existing **areas** (see `doc/EntityList.md`):
+
+| Area | Prefix | Contents |
+| --- | --- | --- |
+| `base` | `olo_base_*` | Clock crossings, RAMs, FIFOs, width converters, arbiters, pipeline stages, delays, CRC, strobe generators, reset generators, CAM, PRBS |
+| `axi`  | `olo_axi_*`  | AXI4-Lite slave, AXI4 master (simple / full), AXI pipeline |
+| `intf` | `olo_intf_*` | I²C master, SPI master/slave, UART, sync, debounce, clk-meas |
+| `fix`  | `olo_fix_*`  | Fixed-point arithmetic + co-simulation utilities |
+| `ft`   | `olo_ft_*`   | SECDED-protected fault-tolerant entities (RAMs, codec) |
+
+If your entity does not fit any of these areas, propose a new area in Phase 1.
+
+---
+
+## Naming Conventions (extracted from `doc/Conventions.md`)
+
+Read `doc/Conventions.md` for the full set. The hard rules are:
+
+- **Entity:** `olo_<area>_<function>` (e.g. `olo_base_fifo_async`).
+- **Generics:** `_g` suffix, PascalCase (e.g. `Width_g`, `RamStyle_g`).
+- **Constants:** `_c` suffix.
+- **Variables:** `_v` suffix.
+- **Types:** `_t` suffix; FSM types `<name>Fsm_t` and FSM state values `_s` suffix.
+- **Ports:** `<Interface>_<Signal>`, PascalCase, **no** `_i` / `_o` suffixes (direction is on the entity).
+- **Library:** all sources are compiled into the `olo` library.
+- **Language:** VHDL-2008. Use `library ieee; use ieee.std_logic_1164.all; use ieee.numeric_std.all;` (never `std_logic_arith` / `std_logic_unsigned`).
+- **Reset:** synchronous, high-active, default `'0'`. Standard ports are `Clk` and `Rst`. For multi-clock entities use `<Domain>_Clk` / `<Domain>_Rst` (e.g. `In_Clk`, `In_Rst`, `Out_Clk`, `Out_Rst`).
+- **AXI4-Stream style:** when a handshake is needed, expose `In_Valid` / `In_Ready` / `In_Data` (sink) and `Out_Valid` / `Out_Ready` / `Out_Data` (source). Open Logic supports back-pressure via the `UseReady_g` generic pattern (see `olo_base_pl_stage`).
+
+---
+
+## Phase 1: Proposal & Interface
+
+Goal: agree on **what** the entity does and **how it looks from the outside** before any code is written.
+
+### Step 1a — Write a short proposal note
+
+In the conversation (no file on disk yet), capture:
+
+1. **Purpose** — one or two sentences. What problem does this entity solve?
+2. **Why a new entity** — is there an existing Open Logic entity it would extend / replace / wrap? If so, why a new one instead of a generic addition to the existing entity?
+3. **Area** — which of `base` / `axi` / `intf` / `fix` / `ft` the entity belongs to. Justify if it's a new area.
+4. **Comparable references** — point to the closest existing Open Logic entities so the user can sanity-check style and naming.
+
+Per `Contributing.md` "Larger Features": for real upstream contributions this step corresponds to **opening a GitHub issue and discussing the user interface with the maintainer before writing code**. The skill mirrors that intent locally.
+
+### Step 1b — Design the entity declaration
+
+Draft the full VHDL `entity ... end entity;` declaration following the Open Logic naming rules. Include:
+
+- Generics with type, default, and a one-line description for each.
+- Ports grouped by function (clock/reset, input, output, optional side-channel) with widths and defaults.
+- A short note for each generic / port group describing semantics.
+
+Example shape (a typical AXI-Stream entity):
+
+```vhdl
+entity olo_<area>_<function> is
+    generic (
+        Width_g    : positive;
+        Pipeline_g : natural range 0 to 2 := 0;
+        UseReady_g : boolean              := true
+    );
+    port (
+        -- Clock and Reset
+        Clk        : in    std_logic;
+        Rst        : in    std_logic;
+        -- Input (AXI4-Stream sink)
+        In_Valid   : in    std_logic                          := '1';
+        In_Ready   : out   std_logic;
+        In_Data    : in    std_logic_vector(Width_g - 1 downto 0);
+        -- Output (AXI4-Stream source)
+        Out_Valid  : out   std_logic;
+        Out_Ready  : in    std_logic                          := '1';
+        Out_Data   : out   std_logic_vector(Width_g - 1 downto 0)
+    );
+end entity;
+```
+
+### **REVIEW CHECKPOINT — STOP**
+
+Present the proposal note and the entity declaration to the user. Ask:
+
+- Is the entity in scope for Open Logic?
+- Is the area correct?
+- Are the port names consistent with existing entities in the same area?
+- Are the generic defaults reasonable?
+
+**Wait for explicit approval before continuing.** The interface is the hardest thing to change later — adjust now while it's still on paper.
+
+---
+
+## Phase 2: RTL Implementation
+
+Write `src/<area>/vhdl/olo_<area>_<function>.vhd` using the approved entity declaration from Phase 1.
+
+### File header
+
+Every Open Logic source starts with the standard header:
+
+```vhdl
+---------------------------------------------------------------------------------------------------
+-- Copyright (c) <year> by <author>
+-- Authors: <author>
+---------------------------------------------------------------------------------------------------
+
+---------------------------------------------------------------------------------------------------
+-- Description
+---------------------------------------------------------------------------------------------------
+-- <one-paragraph description matching the proposal>
+--
+-- Documentation:
+-- https://github.com/open-logic/open-logic/blob/main/doc/<area>/olo_<area>_<function>.md
+--
+-- Note: The link points to the documentation of the latest release. If you
+--       use an older version, the documentation might not match the code.
+```
+
+Copy the structure (libraries → entity → architecture) from a comparable existing entity rather than inventing one.
+
+### Synchronous-design rules
+
+- Edge-triggered FFs only — **never infer a latch**. Every `if` in a clocked process must have an `else`; every `case` must have `when others`.
+- No combinational feedback loops — every feedback path passes through a register.
+- No gated clocks — use clock enables (`if En = '1' then`).
+- Single rising edge for all FFs within a clock domain.
+- Provide a reset value for every register in the reset branch.
+
+### Reuse Open Logic building blocks
+
+Before writing any FIFO, clock-crossing, width converter, pipeline stage, RAM, arbiter, CRC engine, or fixed-point math from scratch, look up the corresponding Open Logic entity in `doc/EntityList.md` and instantiate it. The CDC entities in particular are correctness-critical:
+
+| Signal type | Use |
+| --- | --- |
+| Single-bit level(s) | `olo_base_cc_bits` |
+| Single-cycle pulse | `olo_base_cc_pulse` |
+| Multi-bit vector (slow updates) | `olo_base_cc_simple` / `olo_base_cc_status` |
+| Multi-bit vector (handshake) | `olo_base_cc_handshake` |
+| Continuous data stream | `olo_base_fifo_async` |
+| Reset transfer | `olo_base_cc_reset` |
+
+Never use a hand-written 2-FF synchronizer on a multi-bit bus — bits may arrive in different cycles.
+
+### **REVIEW CHECKPOINT — STOP**
+
+Present the RTL file to the user. Ask for review of:
+
+- Algorithm correctness (does it implement what the proposal said?).
+- Code-style adherence (`doc/Conventions.md`).
+- Reuse of existing Open Logic entities.
+
+**Wait for explicit approval before moving to Phase 3.**
+
+---
+
+## Phase 3: Testbench
+
+Open Logic testbenches use **VUnit** plus the VUnit verification-components library
+(`vunit_lib.vc_context`) — `axi_stream_master_t`, `axi_stream_slave_t`, etc. **Open Logic does not use UVVM.** Do not introduce UVVM into a contribution.
+
+### File location
+
+```
+test/<area>/olo_<area>_<function>/olo_<area>_<function>_tb.vhd
+```
+
+### Skeleton
+
+Use this skeleton (model copied from `test/base/olo_base_arb_prio/olo_base_arb_prio_tb.vhd`):
+
+```vhdl
+---------------------------------------------------------------------------------------------------
+-- Copyright (c) <year> by <author>
+-- Authors: <author>
+---------------------------------------------------------------------------------------------------
+
+library ieee;
+    use ieee.std_logic_1164.all;
+    use ieee.numeric_std.all;
+
+library vunit_lib;
+    context vunit_lib.vunit_context;
+    -- Add the next two only if you use AXI-Stream / com VCs:
+    context vunit_lib.com_context;
+    context vunit_lib.vc_context;
+
+library olo;
+    use olo.olo_base_pkg_math.all;
+    use olo.olo_base_pkg_logic.all;
+
+-- vunit: run_all_in_same_sim
+entity olo_<area>_<function>_tb is
+    generic (
+        runner_cfg : string;
+        -- Mirror the DUT generics you want to sweep over here.
+        Width_g    : positive := 16
+    );
+end entity;
+
+architecture sim of olo_<area>_<function>_tb is
+
+    constant ClkPeriod_c : time := 10 ns;
+
+    signal Clk : std_logic := '0';
+    signal Rst : std_logic := '1';
+    -- DUT-side signals here
+
+begin
+
+    Clk <= not Clk after 0.5 * ClkPeriod_c;
+
+    i_dut : entity olo.olo_<area>_<function>
+        generic map (
+            Width_g => Width_g
+        )
+        port map (
+            Clk => Clk,
+            Rst => Rst
+            -- ...
+        );
+
+    test_runner_watchdog(runner, 1 ms);
+
+    p_control : process is
+    begin
+        test_runner_setup(runner, runner_cfg);
+
+        while test_suite loop
+            -- Reset between cases
+            wait until rising_edge(Clk);
+            Rst <= '1';
+            wait for 200 ns;
+            wait until rising_edge(Clk);
+            Rst <= '0';
+            wait until rising_edge(Clk);
+
+            if run("Case-Basic") then
+                -- stimulus + checks
+            elsif run("Case-Stress") then
+                -- ...
+            end if;
+        end loop;
+
+        test_runner_cleanup(runner);
+    end process;
+
+end architecture;
+```
+
+### What to verify
+
+At minimum:
+
+- A **basic** test that exercises the nominal data path.
+- **Reset behaviour** — assert/deassert mid-operation and check the entity recovers cleanly.
+- **Edge cases** of every generic (min, max, default).
+- **Back-pressure** for any AXI-Stream entity — exercise `Out_Ready` stalls using `axi_stream_slave_t` with a non-zero `stall_config`.
+- **Coverage of every requirement** stated in the Phase-1 proposal.
+
+If the entity has multiple clock domains, also sweep the source/destination clock ratios — see `sim/test_configs/olo_base.py` for the standard ratio set.
+
+### Register the testbench with VUnit
+
+Append a configuration block to `sim/test_configs/olo_<area>.py`:
+
+```python
+### olo_<area>_<function> ###
+tb = olo_tb.test_bench('olo_<area>_<function>_tb')
+for w in [8, 16, 32]:
+    named_config(tb, {'Width_g': w})
+```
+
+### Run the tests
+
+Use the central `sim/run.py` script. The simulator is selected via flag or `VUNIT_SIMULATOR`:
+
+```bash
+cd sim
+python run.py "*olo_<area>_<function>*" -p 4
+```
+
+See the **Simulator support** section below for which simulator the workflow can pick.
+
+### **REVIEW CHECKPOINT — STOP**
+
+Show the user:
+
+- Final TB source.
+- Test-config snippet.
+- The full passing log (test count, all PASS).
+
+Ask for review of test coverage. **Wait for explicit approval before Phase 4.**
+
+---
+
+## Phase 4: Documentation
+
+Every entity has a markdown doc at `doc/<area>/olo_<area>_<function>.md`. Open the closest comparable entity's doc and follow its structure exactly — it's intentional and tools (CI, badges, ToC) depend on it.
+
+### Mandatory structure
+
+```markdown
+<img src="../Logo.png" alt="Logo" width="400">
+
+# olo_<area>_<function>
+
+[Back to **Entity List**](../EntityList.md)
+
+## Status Information
+
+![Endpoint Badge](https://img.shields.io/endpoint?url=https://storage.googleapis.com/open-logic-badges/coverage/olo_<area>_<function>.json?cacheSeconds=0)
+![Endpoint Badge](https://img.shields.io/endpoint?url=https://storage.googleapis.com/open-logic-badges/branches/olo_<area>_<function>.json?cacheSeconds=0)
+![Endpoint Badge](https://img.shields.io/endpoint?url=https://storage.googleapis.com/open-logic-badges/issues/olo_<area>_<function>.json?cacheSeconds=0)
+
+VHDL Source: [olo_<area>_<function>](../../src/<area>/vhdl/olo_<area>_<function>.vhd)
+
+## Description
+
+<one or two paragraphs — same shape as the entity's RTL description header>
+
+## Generics
+
+| Name      | Type     | Default | Description                |
+| :-------- | :------- | ------- | :------------------------- |
+| Width_g   | positive | -       | ...                        |
+
+## Interfaces
+
+<split into subsections when there are multiple groups; e.g. Clock-and-Reset / Input / Output / Error Injection>
+
+### Clock and Reset
+
+| Name | In/Out | Length | Default | Description                                     |
+| :--- | :----- | :----- | ------- | :---------------------------------------------- |
+| Clk  | in     | 1      | -       | Clock                                           |
+| Rst  | in     | 1      | '0'     | Reset (high-active, synchronous to _Clk_)       |
+
+### Input
+
+...
+
+### Output
+
+...
+
+## Architecture
+
+<short description + figure if helpful>
+
+![architecture](./<area>/<function>/olo_<area>_<function>_arch.drawio.png)
+
+## Constraints
+
+<only if the entity needs TCL constraints>
+```
+
+Three coverage badges are mandatory — CI populates them when the first coverage run lands. Match the keys to the entity name exactly.
+
+For architecture diagrams the project uses **draw.io** PNGs with the diagram XML embedded (`<name>.drawio.png`). Place per-entity figures under a subfolder (`doc/<area>/<group>/`) — never directly in the area folder, to keep the area folder uncluttered.
+
+### Update EntityList
+
+Add a one-line row for the new entity to the appropriate table in `doc/EntityList.md`. Keep the description short — the link points to the full doc.
+
+### **REVIEW CHECKPOINT — STOP**
+
+Present the doc + EntityList entry. **Wait for explicit approval before Phase 5.**
+
+---
+
+## Phase 5: Integration
+
+These steps wire the new entity into the rest of the repository so CI sees it.
+
+### 5a — Regenerate `compile_order.txt`
+
+```bash
+cd sim
+python run.py --compile_list
+```
+
+The script writes the file at the repo root with forward slashes. **Never hand-edit it.** Verify the new entity appears in dependency order between its prerequisites and any RAM/FIFO it builds on.
+
+### 5b — Append to `Changelog.md`
+
+Add a bullet under the next-release heading describing the new entity in user-facing terms (what it does, key generics).
+
+### 5c — Synthesis inference (optional but recommended)
+
+If the entity is meant for users to instantiate directly, add one representative configuration to `tools/inference_test/yaml/<area>.yml`. Keep the configuration list short (typically one entry per entity) — synthesis runs on the AWS runner are not free.
+
+### 5d — VHDL Language Server config (optional)
+
+If `vhdl_ls.toml` needs the new file, regenerate it:
+
+```bash
+cd sim
+python create_vhdl_ls_config.py
+```
+
+### **REVIEW CHECKPOINT — STOP**
+
+Show the user the diff for `compile_order.txt`, `Changelog.md`, and (if touched) `tools/inference_test/yaml/<area>.yml`. **Wait for approval before Phase 6.**
+
+---
+
+## Phase 6: Verification & Lint
+
+### 6a — Full regression on free simulators
+
+The HDL-Check CI workflow runs **GHDL and NVC** for free contributions. Reproduce both locally if installed:
+
+```bash
+cd sim
+python run.py -p 16              # default: GHDL
+python run.py --nvc -p 16        # if NVC is installed
+```
+
+Both must pass before opening the PR. If only GHDL is installed, state that clearly when handing the result back to the user.
+
+### 6b — VSG lint
+
+Open Logic has three vsg configs under `lint/config/`:
+
+| File | Used for | Notes |
+| --- | --- | --- |
+| `vsg_config.yml` | production VHDL **and** per-entity TBs in `test/<area>/<entity>/` | Compatible with vsg **3.25.0** (pin it: `python -m pip install vsg==3.25.0`). Preserves PascalCase. |
+| `vsg_config_overlay_vc.yml` | **only** shared verification components under `test/tb/` | Forces `case: lower` (VUnit-VC style). **Do not apply this overlay to per-entity TBs.** |
+| `fix_only_config.yml` | use with `--fix --fix_only` to apply *safe* auto-fixes only | Whitelist of whitespace / structure rules. Explicitly excludes case-changing rules. |
+
+CI runs check-only (`--all_phases`, no `--fix`) via `lint/script/script.py`. Match that locally:
+
+```bash
+# Production source (always vsg_config.yml only)
+vsg \
+    --configuration ./lint/config/vsg_config.yml \
+    --filename ./src/<area>/vhdl/olo_<area>_<function>.vhd \
+    --all_phases
+
+# Per-entity testbench (still vsg_config.yml only — no VC overlay)
+vsg \
+    --configuration ./lint/config/vsg_config.yml \
+    --filename ./test/<area>/olo_<area>_<function>/olo_<area>_<function>_tb.vhd \
+    --all_phases
+
+# Shared VC under test/tb/ (overlay applies here)
+vsg \
+    --configuration ./lint/config/vsg_config.yml ./lint/config/vsg_config_overlay_vc.yml \
+    --filename ./test/tb/<vc-file>.vhd \
+    --all_phases
+```
+
+Fix every reported violation. **Be careful with `--fix`** — applied with `vsg_config.yml` alone it will auto-lowercase identifiers, which contradicts Open Logic's PascalCase convention. Two safe options:
+
+1. Fix the reported violations **by hand** (preferred for entity declarations and ports — case must stay PascalCase).
+2. Use the project's whitelist for whitespace-only auto-fixing:
+   ```bash
+   vsg --fix --fix_only ./lint/config/fix_only_config.yml \
+       --configuration ./lint/config/vsg_config.yml \
+       --filename <file> --all_phases
+   ```
+   This applies only the rules listed in `fix_only_config.yml` and leaves identifier casing untouched.
+
+### 6c — Markdown lint
+
+```bash
+markdownlint -c .markdownlint.json doc/<area>/olo_<area>_<function>.md
+```
+
+### 6d — Coverage (only if Questa is available)
+
+```bash
+cd sim
+python run.py --modelsim --coverage -p 4 "*olo_<area>_<function>*"
+python AnalyzeCoverage.py
+```
+
+Skip this step on a free toolchain — the GitHub-runner workflow doesn't require it. The Coverage workflow on the AWS runner will catch any gaps.
+
+### **FINAL CHECKPOINT**
+
+Hand back to the user:
+
+- Summary of regression results (which simulators, pass counts).
+- VSG / markdownlint status.
+- A draft of the contribution checklist they need to follow per `Contributing.md`:
+  1. Fork the repo.
+  2. Branch `feature/<your-feature-name>` from `develop`.
+  3. Sign the [CLA](https://cla-assistant.io/open-logic/open-logic).
+  4. Open the PR against `develop`.
+
+---
+
+## Simulator Support
+
+Open Logic's `sim/run.py` recognises three simulators via the `vunit.Simulator` enum:
+
+| Simulator | License | `run.py` flag | `VUNIT_SIMULATOR` value | Coverage support |
+| --- | --- | --- | --- | --- |
+| **GHDL** | open-source | `--ghdl` (default) | `ghdl` | no (in this flow) |
+| **NVC** | open-source | `--nvc` | `nvc` | no (in this flow) |
+| **ModelSim / Questa Intel FPGA Starter** | commercial (free starter edition available) | `--modelsim` | `modelsim` | yes (`--coverage` requires this) |
+
+Other simulators VUnit supports (Riviera-PRO, Active-HDL) are **not exercised by Open Logic CI** — do not assume they work.
+
+### Detect what's installed before recommending a simulator
+
+When this skill needs to pick a simulator (running the regression in Phase 3, 6a, or 6d), detect available tools via `shutil.which`. Use this snippet (or call it from a small helper):
+
+```python
+import shutil
+
+def detect_simulators():
+    """Return a dict mapping our run.py keys to the binary path actually found.
+
+    None of the entries are needed for parsing — we just want to know which
+    `run.py` flag is safe to use on this workstation.
+    """
+    sims = {}
+    if shutil.which("ghdl"):
+        sims["ghdl"] = shutil.which("ghdl")
+    if shutil.which("nvc"):
+        sims["nvc"] = shutil.which("nvc")
+    # ModelSim / Questa both ship `vsim`. Distinguish via version banner.
+    vsim = shutil.which("vsim")
+    if vsim:
+        sims["modelsim"] = vsim
+    return sims
+```
+
+Selection priority for the skill:
+
+1. If `GHDL` is found → use it (matches the CI default; fastest free path).
+2. Else if `NVC` is found → use it (CI's secondary free simulator).
+3. Else if `vsim` is found → use `--modelsim`.
+4. Else → tell the user no supported simulator is on PATH and link to `doc/HowTo.md` §"Run Simulations".
+
+Coverage runs (Phase 6d) require `vsim`. If it's absent, skip the coverage step and say so explicitly — the user's PR will still pass HDL-Check on GitHub.
+
+### VUnit installation
+
+VUnit itself is required regardless of simulator: `python -m pip install vunit_hdl`. The `run.py` script also expects `osvvm` for randomisation in some tests — `vu.add_osvvm()` covers that.
+
+---
+
+## When NOT to use this skill
+
+- **Bug fixes in an existing entity.** Use `open-logic-dbg` to triage, then patch the RTL / TB / doc directly. The six-phase ramp-up is overkill.
+- **Documentation-only changes.** Edit the relevant `doc/**/*.md` file and rerun `markdownlint`.
+- **Adding a new test case to an existing TB.** Just append the `elsif run("…")` block and (if needed) a new config in `sim/test_configs/olo_<area>.py`.
+
+---
+
+## Reference entities (recommended templates)
+
+| Pattern | Good template entity |
+| --- | --- |
+| Plain combinational + register | `olo_base_pl_stage` |
+| AXI4-Stream sink + source with back-pressure | `olo_base_wconv_n2m` |
+| Multi-clock-domain entity | `olo_base_fifo_async`, `olo_base_cc_handshake` |
+| Single-port RAM wrapper | `olo_base_ram_sp` (and `olo_ft_ram_sp` for the ECC wrap pattern) |
+| Package-only contribution | `olo_base_pkg_logic`, `olo_ft_pkg_ecc` |
+
+When starting a new entity, **always** open the closest template first and mirror its file structure, header style, and TB layout.
