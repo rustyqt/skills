@@ -13,6 +13,7 @@ subdirectory is one skill — drop it into a project's `.claude/skills/` folder 
 | [`fpga-module-dev`](./fpga-module-dev) | Six-phase workflow for developing a new FPGA module in a project repository: requirements → architecture & design description → verification plan → RTL → testbenches → verification. Uses VUnit + UVVM, Open Logic as the design library (git submodule), and QuestaSim as the simulator. |
 | [`fpga-module-dbg`](./fpga-module-dbg) | Diagnose-fix-verify loop for failing VUnit + UVVM testbenches in a project repository. Maps each root cause to the right `fpga-module-dev` phase, and ships the same `wavequery.py` CLI for VCD / WLF inspection across GHDL, NVC and ModelSim / Questa. |
 | [`drawio`](./drawio) | Generate native `.drawio` diagrams (flowcharts, architecture, ER, sequence, class, network, wireframes) as mxGraphModel XML, with optional PNG / SVG / PDF export via the draw.io desktop CLI. Upstream: [jgraph/drawio-mcp](https://github.com/jgraph/drawio-mcp/tree/main/skill-cli). |
+| [`wavedrom`](./wavedrom) | Generate WaveDrom diagrams as WaveJSON (`.json5`): digital timing waveforms (SPI, I2C, AXI, handshakes, clock-with-enable), bitfield / register layouts, and gate-level logic schematics. Optional SVG / PNG / PDF export via [`wavedrom-cli`](https://github.com/wavedrom/wavedrom-cli). |
 
 ## Installation
 
