@@ -12,7 +12,8 @@ Generate draw.io diagrams as native `.drawio` files. Optionally export to PNG, S
 1. **Generate draw.io XML** in mxGraphModel format for the requested diagram
 2. **Write the XML** to a `.drawio` file in the current working directory using the Write tool
 3. **If the user requested an export format** (png, svg, pdf), locate the draw.io CLI (see below), export with `--embed-diagram`, then delete the source `.drawio` file. If the CLI is not found, keep the `.drawio` file and tell the user they can install the draw.io desktop app to enable export, or open the `.drawio` file directly
-4. **Open the result** — the exported file if exported, or the `.drawio` file otherwise. If the open command fails, print the file path so the user can open it manually
+4. **Render-and-verify (MANDATORY when exporting to PNG/SVG/JPG).** After exporting an image, immediately use the Read tool on the exported file to visually inspect what was rendered. Check for: (a) every arrow ends on a block boundary (no floating arrows), (b) no overlapping text/labels, (c) labels sit on the intended edges (not on adjacent blocks), (d) parallel/sibling edges aren't bundled into a single line, (e) every cell is inside the page bounds. If any issue is found, fix the XML and re-export — do not present a broken diagram to the user. PDFs and pure-text exports are exempt; everything image-based needs the visual pass.
+5. **Open the result** — the exported file if exported, or the `.drawio` file otherwise. If the open command fails, print the file path so the user can open it manually
 
 ## Choosing the output format
 
@@ -178,11 +179,26 @@ XML schema: [`mxfile.xsd`](./mxfile.xsd) — formal schema for `.drawio` files. 
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| draw.io CLI not found | Desktop app not installed or not on PATH | Keep the `.drawio` file and tell the user to install the draw.io desktop app, or open the file manually |
+| draw.io CLI not found | Desktop app not installed or not on PATH | **Offer to install it for the user with one of the one-liners below** (then re-run the export). Only fall back to "keep the `.drawio` file" if the install is refused or fails. |
 | Export produces empty/corrupt file | Invalid XML (e.g. double hyphens in comments, unescaped special characters) | Validate XML well-formedness before writing; see the XML well-formedness section below |
 | Diagram opens but looks blank | Missing root cells `id="0"` and `id="1"` | Ensure the basic mxGraphModel structure is complete |
 | Edges not rendering | Edge mxCell is self-closing (no child mxGeometry element) | Every edge must have `<mxGeometry relative="1" as="geometry" />` as a child element |
 | File won't open after export | Incorrect file path or missing file association | Print the absolute file path so the user can open it manually |
+
+### Installing draw.io desktop
+
+When the CLI isn't found, the desktop app can be installed with a single command (no reboot needed). Pick the matching platform and offer to run it for the user:
+
+| Platform | Install command | Resulting CLI path |
+|----------|-----------------|--------------------|
+| Windows (winget) | `winget install JGraph.Draw --accept-source-agreements --accept-package-agreements --silent` | `C:\Program Files\draw.io\draw.io.exe` |
+| Windows (Chocolatey) | `choco install drawio -y` | `C:\Program Files\draw.io\draw.io.exe` |
+| macOS (Homebrew) | `brew install --cask drawio` | `/Applications/draw.io.app/Contents/MacOS/draw.io` |
+| Linux (snap) | `sudo snap install drawio` | `drawio` on PATH |
+| Linux (Flatpak) | `flatpak install -y flathub com.jgraph.drawio.desktop` | `flatpak run com.jgraph.drawio.desktop` |
+| WSL2 | Install on the Windows host with winget (see first row); the WSL2 side then calls it via `/mnt/c/Program Files/draw.io/draw.io.exe` | Windows path |
+
+After installation, verify the CLI is reachable with the platform's locator command (`where drawio.exe` / `which drawio`) before retrying the export.
 
 ## CRITICAL: XML well-formedness
 

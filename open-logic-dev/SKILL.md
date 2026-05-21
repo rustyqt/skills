@@ -100,28 +100,35 @@ Read `doc/Conventions.md` for the full set. The hard rules are:
 
 ---
 
-## Phase 1: Proposal & Interface
+## Phase 1: Interface & Architecture Proposal
 
-Goal: agree on **what** the entity does and **how it looks from the outside** before any code is written.
+Goal: lock down **WHAT** the entity does, **HOW** it looks from outside (interface), and **HOW** it is built on the inside (architecture) before any RTL is written. The interface and the internal block decomposition are the hardest things to change later, so this is where most of the design thinking happens.
 
-### Step 1a — Write a short proposal note
+> **Ask back frequently on architectural design decisions.** Phase 1 is collaborative by design. Whenever you face a real choice (primitive vs custom RTL, generic vs separate entity, sync vs async, where a pipeline register lives, etc.), present the options with their trade-offs and ask the user to pick rather than committing silently. Do not save up every decision for the end-of-phase review checkpoint; surface them in line as soon as they appear. A small number of mid-phase exchanges is cheaper than a Phase 2 RTL rewrite.
 
-In the conversation (no file on disk yet), capture:
+The deliverables of this phase are three short artefacts presented in the conversation (no files on disk yet):
 
-1. **Purpose** — one or two sentences. What problem does this entity solve?
-2. **Why a new entity** — is there an existing Open Logic entity it would extend / replace / wrap? If so, why a new one instead of a generic addition to the existing entity?
-3. **Area** — which of `base` / `axi` / `intf` / `fix` / `ft` the entity belongs to. Justify if it's a new area.
-4. **Comparable references** — point to the closest existing Open Logic entities so the user can sanity-check style and naming.
+1. Purpose & area note
+2. Entity declaration
+3. Architecture proposal (block diagram + internal entities + custom RTL list)
 
-Per `Contributing.md` "Larger Features": for real upstream contributions this step corresponds to **opening a GitHub issue and discussing the user interface with the maintainer before writing code**. The skill mirrors that intent locally.
+### Step 1a — Purpose & area
 
-### Step 1b — Design the entity declaration
+State, in two or three lines each:
+
+- **Purpose:** what problem does the entity solve, and who would instantiate it. One or two sentences.
+- **Area:** which of `base` / `axi` / `intf` / `fix` / `ft` the entity belongs to.
+- **Comparable references:** the closest existing Open Logic entities. These inform both the interface style AND the architectural patterns (e.g. "shaped like `olo_base_fifo_async` but with a CRC tag per beat" or "wraps `olo_ft_ram_sp` plus a small scrubber FSM").
+
+### Step 1b — Entity declaration
 
 Draft the full VHDL `entity ... end entity;` declaration following the Open Logic naming rules. Include:
 
 - Generics with type, default, and a one-line description for each.
-- Ports grouped by function (clock/reset, input, output, optional side-channel) with widths and defaults.
-- A short note for each generic / port group describing semantics.
+- Ports grouped by function (clock/reset, primary in/out, optional side-channel, status outputs) with widths and defaults.
+- A short note for each generic and each port group describing semantics (e.g. "synchronous to `Clk`", "default `'1'` for continuous reads", "tied to `'0'` when feature disabled").
+- For handshake interfaces, use the canonical AXI4-Stream shape: `In_Valid` / `In_Ready` / `In_Data` (sink) and `Out_Valid` / `Out_Ready` / `Out_Data` (source). Use `UseReady_g` only if the entity supports a back-pressure-free fast path.
+- For optional features that change the port list, decide between (a) a `Feature_g` generic with extra ports tied off when disabled, or (b) a separate `_<feature>` wrapper entity. Document the choice in step 1c.
 
 Example shape (a typical AXI-Stream entity):
 
@@ -148,16 +155,76 @@ entity olo_<area>_<function> is
 end entity;
 ```
 
+### Step 1c — Architecture proposal
+
+Sketch **how** the entity will be built. Three sub-deliverables:
+
+**(1) Block diagram or data-flow description.** Show the major stages from input to output, the clock domain of each block, where the pipeline registers sit, and where back-pressure (if any) propagates. ASCII art works fine. Mark clock-domain crossings explicitly.
+
+```
+                       Wr_*                    Rd_*
+                        │                        ▲
+                        ▼                        │
+                 ┌──────────────┐         ┌─────────────┐
+                 │ user-priority│────────▶│  decoder    │
+                 │   muxes      │         │ outputs tap │
+                 └──────────────┘         └─────────────┘
+                        │                        ▲
+                        ▼                        │
+                 ┌──────────────┐         ┌─────────────┐
+                 │ olo_ft_ram_  │────────▶│ scrubber    │
+                 │     sp       │   Dec_* │   FSM       │
+                 └──────────────┘         └─────────────┘
+```
+
+**(2) Internal-entities table.** For every existing Open Logic entity you plan to instantiate, list the instance label, the entity name, and a one-line justification for why this specific primitive (instead of a hand-rolled equivalent or a different primitive).
+
+| Instance | Entity | Why this one |
+| --- | --- | --- |
+| `i_ram`  | `olo_base_ram_sp`   | provides `RdValid` pipeline + BRAM inference |
+| `i_enc`  | `olo_ft_ecc_encode` | SECDED encode on the write path             |
+| `i_dec`  | `olo_ft_ecc_decode` | SECDED decode + `Out_Valid` alignment       |
+
+This step forces the question "could a primitive replace something I was about to hand-write?" before any RTL exists. Use `doc/EntityList.md` to find candidates. For these patterns the right answer is almost always an existing base entity:
+
+| Signal type | Use |
+| --- | --- |
+| Single-bit level(s) across clock domains | `olo_base_cc_bits` |
+| Single-cycle pulse across clock domains | `olo_base_cc_pulse` |
+| Multi-bit vector (slow updates) | `olo_base_cc_simple` / `olo_base_cc_status` |
+| Multi-bit vector (handshake) | `olo_base_cc_handshake` |
+| Continuous data stream | `olo_base_fifo_async` |
+| Reset transfer | `olo_base_cc_reset` |
+| Fixed-cycle delay of a vector | `olo_base_delay` |
+| Configurable delay | `olo_base_delay_cfg` |
+| Combinational/registered pipeline stage | `olo_base_pl_stage` |
+
+Never roll your own 2-FF synchronizer on a multi-bit bus or a shift register where a primitive exists.
+
+**(3) Custom RTL list.** For each piece of logic that will **not** be a primitive instantiation, list it with a one-line function description and a one-line "why custom" justification. Keep this list short on purpose; every entry is a place future review can push back.
+
+| Custom block | Function | Why custom (no primitive fits) |
+| --- | --- | --- |
+| Port-arbitration muxes | Combinational mux picking user or scrubber source on shared port | Three concurrent assignments; no primitive applies |
+| `RdValid` masking | AND-NOT of `Ram_RdValid` with `Scrub_Rd_Valid` to suppress scrubber-owned read pulses | Single gate; primitive would be overkill |
+| Scrubber FSM | Address counter + 5-state RMW sequencer with collision-snoop logic | No suitable primitive in Open Logic; intentional new RTL |
+
+State the **architectural trade-offs** that matter:
+
+- Single entity with `Feature_g` generic, or separate `_<feature>` wrapper entity? Pick one, justify briefly.
+- Sync only, or async clock support? If async, name the CDC primitives.
+- Where does the read-valid (or other timing-critical) shift register live, and can it be shared with a sibling primitive?
+- Any interface widening on a reused entity (e.g. adding `Rd_Valid` to `olo_base_ram_sp`) and the cost it imposes on existing callers.
+
 ### **REVIEW CHECKPOINT — STOP**
 
-Present the proposal note and the entity declaration to the user. Ask:
+Present all three artefacts (purpose+area, entity declaration, architecture proposal) and explicitly ask the user to push back on:
 
-- Is the entity in scope for Open Logic?
-- Is the area correct?
-- Are the port names consistent with existing entities in the same area?
-- Are the generic defaults reasonable?
+- **Interface.** Do the port names and groupings match the area's conventions? Are generic defaults sensible? Is the AXI-Stream shape needed, or is a simpler one-shot interface enough?
+- **Architecture.** Is each instantiated primitive the right choice? Is any "custom block" secretly an existing primitive in disguise? Are there cross-cutting choices (separate entity vs `_g` generic, sync-only vs async, shared vs duplicated shift registers) that warrant discussion now?
+- **Trade-offs.** Are there obvious area or timing trade-offs hidden in the choices (extra shift register vs interface widening, mux depth vs separate ports, ...) that should be on the table before RTL gets written?
 
-**Wait for explicit approval before continuing.** The interface is the hardest thing to change later — adjust now while it's still on paper.
+**Wait for explicit approval before continuing.** Iterate on the interface and the architecture together here. RTL changes in Phase 2 are cheap; interface and decomposition changes after Phase 2 are not.
 
 ---
 
@@ -199,7 +266,7 @@ Copy the structure (libraries → entity → architecture) from a comparable exi
 
 ### Reuse Open Logic building blocks
 
-Before writing any FIFO, clock-crossing, width converter, pipeline stage, RAM, arbiter, CRC engine, or fixed-point math from scratch, look up the corresponding Open Logic entity in `doc/EntityList.md` and instantiate it. The CDC entities in particular are correctness-critical:
+Before writing any FIFO, clock-crossing, width converter, pipeline stage, RAM, arbiter, CRC engine, or fixed-point math from scratch, look up the corresponding Open Logic entity in `doc/EntityList.md` and instantiate it. Ask back frequently on architectural design decisions. The CDC entities in particular are correctness-critical:
 
 | Signal type | Use |
 | --- | --- |

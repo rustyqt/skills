@@ -14,7 +14,7 @@ Your job is to declare the **logical structure** of the diagram — what nodes e
 - Do NOT re-derive drawio mechanics (`horizontal=0`, `startSize=110`, nested-lane coordinates). Use the templates below as-is.
 - Do NOT enumerate columns ("customer lane columns 0-10, web app 1-7"). Place a node, move on.
 - Do NOT add `<Array as="points">` waypoints. Edges are routed automatically.
-- Do NOT set `exitX` / `exitY` / `entryX` / `entryY` connection-point overrides unless you have specific geometric intent.
+- Do NOT set `exitX` / `exitY` / `entryX` / `entryY` connection-point overrides **for a single isolated edge** — let the router choose. (For the cases where you DO need them, see "Multi-edge fan-out" below.)
 - Do NOT verify, re-check, or adjust coordinates after placing a node.
 - Do NOT narrate "building the diagram / finalizing the XML / now let me…". Just emit XML.
 - Do NOT write out lists of node positions as planning text. Emit them as `<mxCell>` elements directly.
@@ -32,6 +32,33 @@ Your job is to declare the **logical structure** of the diagram — what nodes e
 - Node size: rectangles `140×60`, diamonds `140×80`, circles `60×60`, documents `120×80`, cylinders `100×70`
 
 Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap — ELK handles routing between rough positions. Slight misalignment is invisible in the result.
+
+## Multi-edge fan-out (read when ≥2 edges share an endpoint)
+
+ELK's default routing collapses multiple edges that share the same source-side or target-side into a single visual "bus." For 4 edges going from one block to 4 different targets, you typically see one fat stack of arrowheads instead of 4 spread-out arrows. The skill's general "don't set `exitX/exitY/entryX/entryY`" rule does NOT apply here — you DO need to override these explicitly.
+
+**Rule:** when a single cell is the source (or target) of `N ≥ 2` edges that visually belong on the same side of that cell, give each edge an explicit `exitY` / `entryY` value (or `exitX` / `entryX` for top/bottom). Distribute them evenly along the side:
+
+```
+For N edges leaving the right side of one cell:
+  edge i (i = 0..N-1): exitX=1, exitY = (i + 0.5) / N
+```
+
+So for `N=4` outputs: exitY = 0.125, 0.375, 0.625, 0.875. For `N=2`: exitY = 0.25, 0.75.
+
+Same pattern for inputs (entryX/entryY).
+
+When the targets are external labels in a column, align their `y` so each label center matches the matching edge exit y. Otherwise the arrows look diagonal instead of horizontal.
+
+For a **single source feeding multiple separate targets** (e.g. one signal fanning to 3 blocks), each edge needs its own `exitX/exitY` AND a target-side `entryX/entryY` matched to where it should enter the target block. Without these, ELK reuses one exit point and the arrows visibly overlap their first segment.
+
+## Edge style for "straight lines" vs. "L-shaped"
+
+- `edgeStyle=none` (or omit `edgeStyle` entirely) → **single straight segment** from source to target. Use for any arrow that should look straight (horizontal data flow, vertical pipeline stages, etc.).
+- `edgeStyle=orthogonalEdgeStyle` → **Manhattan routing** (horizontal+vertical segments only, one or more 90° bends). Use when the source and target are not aligned and you want a clean L-shape (e.g. an input from below entering a block from its bottom edge).
+- `edgeStyle=elbowEdgeStyle` → single elbow bend, halfway between source and target.
+
+Default `orthogonalEdgeStyle` is wrong for the common architecture-diagram case where data flows in a straight line between aligned blocks — pick `edgeStyle=none` explicitly there.
 
 ## General principles
 
