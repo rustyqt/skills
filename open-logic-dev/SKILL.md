@@ -264,6 +264,130 @@ Copy the structure (libraries → entity → architecture) from a comparable exi
 - Single rising edge for all FFs within a clock domain.
 - Provide a reset value for every register in the reset branch.
 
+### Two-process design style
+
+The two-process style is the **de-facto default** for Open Logic RTL. Use it for every new non-trivial entity. The full FIFO, AXI master, CRC, arbiter, width converter, CC, SPI, UART, I²C, debounce, CIC and divider entities all follow this pattern; mirror them.
+
+**Structure.** All registers of the entity live as fields of a single `TwoProcess_r` record. The architecture has exactly two processes:
+
+```vhdl
+architecture rtl of olo_<area>_<function> is
+
+    type TwoProcess_r is record
+        -- every state-holding signal goes here (data, counters, FSM state, flags, ...)
+        Counter : unsigned(...);
+        Valid   : std_logic;
+        ...
+    end record;
+
+    signal r, r_next : TwoProcess_r;
+
+begin
+
+    -- *** Combinatorial Process ***
+    p_comb : process (all) is
+        variable v : TwoProcess_r;
+    begin
+        v := r;                       -- hold variables stable
+
+        -- ... combinational logic / FSM, writes to v.* ...
+
+        r_next <= v;                  -- assign next-state at the very end
+    end process;
+
+    -- *** Sequential Process ***
+    p_seq : process (Clk) is
+    begin
+        if rising_edge(Clk) then
+            r <= r_next;
+            if Rst = '1' then
+                r.<state_field_1> <= <reset_value>;
+                r.<state_field_2> <= <reset_value>;
+                -- Only state-holding fields. Pipeline / data fields are NOT reset.
+            end if;
+        end if;
+    end process;
+
+end architecture;
+```
+
+Conventions inside this skeleton:
+
+- The record type is named `TwoProcess_r`. The two signals are `r` (registered) and `r_next` (next-state).
+- The variable inside `p_comb` is named `v`. Always start the process with `v := r;` so all fields hold their previous value unless explicitly overwritten.
+- All combinational logic, including default assignments to ports/internal signals and the FSM, lives in `p_comb`. **Do not split a "next-state" process and an "output" process** — outputs are driven inside `p_comb` directly.
+- End `p_comb` with `r_next <= v;` (no other assignments to `r_next`).
+- `p_seq` only does `r <= r_next` plus an **end-of-process reset override** (matching the project-wide reset rule in `doc/Conventions.md`). Reset only the fields that hold genuine state; pipeline-only fields stay un-reset to keep reset fanout low.
+- For multi-clock entities, replicate the pattern per clock domain (`r_in / r_in_next` driven by `In_Clk`, `r_out / r_out_next` driven by `Out_Clk`).
+
+### FSM implementation
+
+FSMs are **embedded inside the two-process record**, not implemented as a separate "next-state + state-register" pair of processes. Naming follows `doc/Conventions.md`:
+
+- FSM type: `<name>Fsm_t` (e.g. `RdFsm_t`).
+- State values: `_s` suffix (e.g. `Fetch_s`, `Data_s`, `Last_s`).
+- The FSM state is a field of `TwoProcess_r` (e.g. `RdFsm : RdFsm_t;`).
+
+The canonical shape (modelled on `olo_base_fifo_packet.vhd` and `olo_base_crc_append.vhd`):
+
+```vhdl
+-- Inside the architecture declaration
+type RdFsm_t is (Fetch_s, Data_s, Last_s);
+
+type TwoProcess_r is record
+    ...
+    RdFsm : RdFsm_t;
+    ...
+end record;
+
+-- Inside p_comb
+p_comb : process (all) is
+    variable v : TwoProcess_r;
+begin
+    v := r;
+
+    -- Default assignments for combinational outputs (each branch only overrides what it needs)
+    Out_Valid <= '0';
+    Out_Data  <= (others => 'X');
+
+    case r.RdFsm is                          -- switch on the REGISTERED state
+        when Fetch_s =>
+            if start_condition then
+                v.RdFsm := Data_s;
+            end if;
+
+        when Data_s =>
+            Out_Valid <= '1';
+            if end_condition then
+                v.RdFsm := Last_s;
+            end if;
+
+        when Last_s =>
+            Out_Valid <= '1';
+            v.RdFsm := Fetch_s;
+
+        -- coverage off
+        when others => v.RdFsm := Fetch_s;   -- unreachable code, safe recovery
+        -- coverage on
+    end case;
+
+    r_next <= v;
+end process;
+
+-- Inside p_seq reset branch
+if Rst = '1' then
+    r.RdFsm <= Fetch_s;
+    ...
+end if;
+```
+
+Specific rules to follow:
+
+- The `case` is on **`r.<Fsm>` (the registered value)**, not `v.<Fsm>`. If subsequent logic in the same beat needs to know whether a transition was just decided, it can inspect `v.<Fsm>` directly.
+- **No dedicated output-decoding process.** Outputs are driven combinatorially inside the case branches (Mealy where outputs depend on inputs, Moore where they only depend on `r.*` and are assigned outside the case). Set safe defaults before the `case` so each branch only overrides what it changes.
+- Always end the `case` with `when others => v.<Fsm> := <default>_s;` wrapped in `-- coverage off` / `-- coverage on` pragma markers. This satisfies VHDL completeness, gives a safe-recovery path if synthesis ever produces an illegal state, and prevents the unreachable branch from counting against the 100 % coverage goal stated in `doc/Conventions.md`.
+- Reset the FSM field to its initial state in the `p_seq` reset override branch alongside any other true state-holding fields.
+
 ### Reuse Open Logic building blocks
 
 Before writing any FIFO, clock-crossing, width converter, pipeline stage, RAM, arbiter, CRC engine, or fixed-point math from scratch, look up the corresponding Open Logic entity in `doc/EntityList.md` and instantiate it. Ask back frequently on architectural design decisions. The CDC entities in particular are correctness-critical:
