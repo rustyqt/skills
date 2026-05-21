@@ -393,6 +393,7 @@ At minimum:
 - **Reset behaviour** — assert/deassert mid-operation and check the entity recovers cleanly.
 - **Edge cases** of every generic (min, max, default).
 - **Back-pressure** for any AXI-Stream entity — exercise `Out_Ready` stalls using `axi_stream_slave_t` with a non-zero `stall_config`.
+- **Random valid** for handshake interfaces — use `axi_stream_master_t` with and use random valid assertion in at least one testcase.
 - **Coverage of every requirement** stated in the Phase-1 proposal.
 
 If the entity has multiple clock domains, also sweep the source/destination clock ratios — see `sim/test_configs/olo_base.py` for the standard ratio set.
