@@ -1,0 +1,31 @@
+files:
+  include:
+    - "../../../src/base/**/*.vhd"
+    - "../../../src/ft/**/*.vhd"
+
+exclude_entities:
+  - "olo_private_*"
+  - "olo_base_*"
+  - "olo_ft_private_*"
+
+entities:
+
+  # olo_ft_fifo_sync wrapped in olo_base_pl_stage on both sides, so the combinational
+  # ECC encode / decode paths are timed register-to-register.
+  - entity_name: "olo_ft_fifo_sync_fmax_wrap"
+    fixed_generics:
+      Depth_g: 256
+      Width_g: 32
+    configurations:
+      - name: "w32-ecc0"
+        generics: { EccPipeline_g: 0 }
+        in_reduce: { In_Data: 32, In_ErrInj_BitFlip: 39 }
+        out_reduce: { Out_Data: 32, In_Level: 9, Out_Level: 9 }
+      - name: "w32-ecc1"
+        generics: { EccPipeline_g: 1 }
+        in_reduce: { In_Data: 32, In_ErrInj_BitFlip: 39 }
+        out_reduce: { Out_Data: 32, In_Level: 9, Out_Level: 9 }
+      - name: "w32-ecc2"
+        generics: { EccPipeline_g: 2 }
+        in_reduce: { In_Data: 32, In_ErrInj_BitFlip: 39 }
+        out_reduce: { Out_Data: 32, In_Level: 9, Out_Level: 9 }

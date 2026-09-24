@@ -30,7 +30,20 @@ only if the previous layer is innocent:
 4. **Test harness wiring** — generic mapping, port mismatches, undriven signals, missing clocks.
 5. **RTL bugs** — only after the previous layers are ruled out. Look at the FSM, datapath, control signals.
 
-### 3. Fix at the right development phase
+### 3. The dual-simulator cross-check (discriminating experiment)
+
+Open Logic supports GHDL and NVC — both free and both run by CI — so when a failure could be either a design/TB bug or a simulator artifact (elaboration differences, `'X'`/`'U'` handling, delta-cycle ordering, a test that "used to pass" after a tool update), run the same test at the same commit on the second simulator **before** changing any code:
+
+```bash
+cd sim
+python run.py -v "*<entity>*<case>*"          # GHDL
+python run.py --nvc -v "*<entity>*<case>*"    # NVC
+```
+
+- Fails on **both** → design/TB bug: debug normally.
+- Fails on **one only** → simulator-specific class: check simulator versions and known issues, and reproduce with a minimal case before working around it. Never patch RTL to appease one simulator without understanding why they diverge — CI runs both, so an unexplained divergence will resurface.
+
+### 4. Fix at the right development phase
 
 Every fix maps back to a phase from [`open-logic-dev`](../open-logic-dev/SKILL.md). Identify the
 root-cause category, then update from that phase forward:

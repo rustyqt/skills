@@ -1,0 +1,26 @@
+files:
+  include:
+    - "../../../src/base/**/*.vhd"
+    - "../../../src/ft/**/*.vhd"
+
+exclude_entities:
+  - "olo_private_*"
+  - "olo_base_*"
+  - "olo_ft_private_*"
+
+entities:
+
+  # Plain single-port RAM, no ECC, no scrubber -- the fabric baseline obruendl asked for.
+  - entity_name: "olo_base_ram_sp"
+    fixed_generics:
+      Depth_g: 256
+      Width_g: 32
+    configurations:
+      - name: "w32-lat1"
+        generics: { RdLatency_g: 1, UseByteEnable_g: false }
+        in_reduce: { WrData: 32 }
+        out_reduce: { RdData: 32 }
+      - name: "w32-lat2"
+        generics: { RdLatency_g: 2, UseByteEnable_g: false }
+        in_reduce: { WrData: 32 }
+        out_reduce: { RdData: 32 }

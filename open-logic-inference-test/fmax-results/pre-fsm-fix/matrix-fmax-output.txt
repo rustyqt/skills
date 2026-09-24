@@ -1,0 +1,39 @@
+Base path: D:\git\open-logic\tools\inference_test\yaml
+*** Document Version Info ***
+libero
+*** Execute Tests ***
+> File: olo_base_ram_sdp
+  > Tool: libero
+    > Config: w32-lat1                       [02:30]  Fmax(Clk)=342.9 MHz
++----------+-----------+------+------+-------+
+|  Config  | Block RAM | DSPs | LUTs |  SLEs |
++----------+-----------+------+------+-------+
+| w32-lat1 |    1.0    | 0.0  | 1.0  | 113.0 |
++----------+-----------+------+------+-------+
+> File: olo_ft_ram_sdp
+  > Tool: libero
+    > Config: w32-ecc0-lat1                  [02:38]  Fmax(Clk)=172.8 MHz
+    > Config: w32-ecc1-lat1                  [02:39]  Fmax(Clk)=168.3 MHz
+    > Config: w32-ecc2-lat1                  [02:35]  Fmax(Clk)=207.0 MHz
++---------------+-----------+------+-------+-------+
+|     Config    | Block RAM | DSPs |  LUTs |  SLEs |
++---------------+-----------+------+-------+-------+
+| w32-ecc0-lat1 |    1.0    | 0.0  | 180.0 | 203.0 |
+| w32-ecc1-lat1 |    1.0    | 0.0  | 171.0 | 238.0 |
+| w32-ecc2-lat1 |    1.0    | 0.0  | 154.0 | 288.0 |
++---------------+-----------+------+-------+-------+
+> File: olo_ft_ram_sdp_scrub
+  > Tool: libero
+    > Config: w32-ecc0-lat1                  [02:43]  Fmax(Clk)=124.5 MHz
+    > Config: w32-ecc1-lat1                  [02:39]  Fmax(Clk)=165.3 MHz
+    > Config: w32-ecc2-lat1                  [02:34]  Fmax(Clk)=197.7 MHz
++---------------+-----------+------+-------+-------+
+|     Config    | Block RAM | DSPs |  LUTs |  SLEs |
++---------------+-----------+------+-------+-------+
+| w32-ecc0-lat1 |    1.0    | 0.0  | 325.0 | 216.0 |
+| w32-ecc1-lat1 |    1.0    | 0.0  | 239.0 | 255.0 |
+| w32-ecc2-lat1 |    1.0    | 0.0  | 253.0 | 310.0 |
++---------------+-----------+------+-------+-------+
+Overall Runtime: 00:18:22
+
+*** Done ***

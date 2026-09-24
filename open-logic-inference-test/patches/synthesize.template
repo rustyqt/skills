@@ -1,0 +1,58 @@
+# Create Project
+new_project -location "{{project_folder}}/prj" -name {tutorial_prj} -project_description {} -block_mode 0 -standalone_peripheral_initialization 0 -instantiate_in_smartdesign 1 -ondemand_build_dh 1 -use_relative_path 0 -linked_files_root_dir_env {} -hdl {VHDL} -family {PolarFireSoC} -die {MPFS250T} -package {FCVG484} -speed {STD} -die_voltage {1.0} -part_range {EXT} -adv_options {IO_DEFT_STD:LVCMOS 1.8V} -adv_options {RESTRICTPROBEPINS:0} -adv_options {RESTRICTSPIPINS:0} -adv_options {SYSTEM_CONTROLLER_SUSPEND_MODE:0} -adv_options {TEMPR:EXT} -adv_options {VCCI_1.2_VOLTR:EXT} -adv_options {VCCI_1.5_VOLTR:EXT} -adv_options {VCCI_1.8_VOLTR:EXT} -adv_options {VCCI_2.5_VOLTR:EXT} -adv_options {VCCI_3.3_VOLTR:EXT} -adv_options {VOLTR:EXT} 
+set_device -family {PolarFireSoC} -die {MPFS250T_ES} -package {FCVG484} -speed {STD} -die_voltage {1.0} -part_range {EXT} -adv_options {IO_DEFT_STD:LVCMOS 1.8V} -adv_options {RESTRICTPROBEPINS:0} -adv_options {RESTRICTSPIPINS:0} -adv_options {SYSTEM_CONTROLLER_SUSPEND_MODE:0} -adv_options {TEMPR:EXT} -adv_options {VCCI_1.2_VOLTR:EXT} -adv_options {VCCI_1.5_VOLTR:EXT} -adv_options {VCCI_1.8_VOLTR:EXT} -adv_options {VCCI_2.5_VOLTR:EXT} -adv_options {VCCI_3.3_VOLTR:EXT} -adv_options {VOLTR:EXT} 
+
+# Import tutorial file
+{%- for src_file in src_files %}
+create_links \
+         -convert_EDN_to_HDL 0 \
+         -library {work} \
+         -hdl_source "{{src_file}}"
+{%- endfor %}
+
+
+# Import open logic
+source {{import_sources}}
+
+# Set top module
+build_design_hierarchy 
+set_root -module "{{top_entity}}::work" 
+
+# Import constraints
+run_tool -name {CONSTRAINT_MANAGEMENT}
+set_device_simple -family {PolarFireSoC} -die {MPFS250T_ES} -package {FCVG484} -speed {STD} -die_voltage {1.0} -part_range {EXT} -adv_options {IO_DEFT_STD:LVCMOS 1.8V} -adv_options {RESERVEMIGRATIONPINS:1} -adv_options {RESTRICTPROBEPINS:0} -adv_options {RESTRICTSPIPINS:0} -adv_options {SYSTEM_CONTROLLER_SUSPEND_MODE:0} -adv_options {TEMPR:EXT} -adv_options {VCCI_1.2_VOLTR:EXT} -adv_options {VCCI_1.5_VOLTR:EXT} -adv_options {VCCI_1.8_VOLTR:EXT} -adv_options {VCCI_2.5_VOLTR:EXT} -adv_options {VCCI_3.3_VOLTR:EXT} -adv_options {VOLTR:EXT}
+
+{%- if fmax %}
+# Timing constraint (Fmax measurement; enabled via OLO_TIMING_REGS=1). Clk and Framework_Clk are
+# placed in asynchronous groups so the reported Clk max frequency reflects the DUT's intra-Clk
+# reg-to-reg paths (the register slices added in the wrapper), not the in_reduce/out_reduce
+# boundary crossings on Framework_Clk.
+set sdc_path "{{project_folder}}/constraint.sdc"
+set fh [open $sdc_path w]
+puts $fh "create_clock -name {Clk} -period 5.000 \[get_ports {Clk}\]"
+puts $fh "create_clock -name {Framework_Clk} -period 5.000 \[get_ports {Framework_Clk}\]"
+puts $fh "set_clock_groups -asynchronous -group \[get_clocks {Clk}\] -group \[get_clocks {Framework_Clk}\]"
+close $fh
+
+# SmartTime script to dump the max-delay (setup) timing report for Fmax extraction.
+set st_path "{{project_folder}}/smarttime.tcl"
+set fh2 [open $st_path w]
+puts $fh2 "report -type timing -analysis max -format text {{project_folder}}/max_timing.rpt"
+close $fh2
+
+create_links -convert_EDN_to_HDL 0 -sdc $sdc_path
+organize_tool_files -tool {SYNTHESIZE}   -file $sdc_path -module {test::work} -input_type {constraint}
+organize_tool_files -tool {PLACEROUTE}   -file $sdc_path -module {test::work} -input_type {constraint}
+organize_tool_files -tool {VERIFYTIMING} -file $sdc_path -module {test::work} -input_type {constraint}
+{%- endif %}
+
+# Build Project
+run_tool -name {SYNTHESIZE}
+{%- if fmax %}
+run_tool -name {PLACEROUTE}
+run_tool -name {VERIFYTIMING} -script $st_path
+{%- endif %}
+
+
+
+

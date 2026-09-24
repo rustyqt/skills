@@ -1,0 +1,59 @@
+files:
+  include:
+    - "../../../src/base/**/*.vhd"
+    - "../../../src/ft/**/*.vhd"
+
+exclude_entities:
+  - "olo_private_*"
+  - "olo_base_*"
+  - "olo_ft_private_*"
+
+entities:
+
+  # Baseline plain RAM (no ECC, no scrubber)
+  - entity_name: "olo_base_ram_sdp"
+    fixed_generics:
+      Depth_g: 256
+      Width_g: 32
+    configurations:
+      - name: "w32-lat1"
+        generics: { RdLatency_g: 1, IsAsync_g: false, UseByteEnable_g: false }
+        in_reduce: { Wr_Data: 32 }
+        out_reduce: { Rd_Data: 32 }
+
+  # ECC RAM, no scrubber (isolates the ECC codec cost vs base)
+  - entity_name: "olo_ft_ram_sdp"
+    fixed_generics:
+      Depth_g: 256
+    configurations:
+      - name: "w32-ecc0-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 0, RamRdLatency_g: 1, IsAsync_g: false }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }
+      - name: "w32-ecc1-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 1, RamRdLatency_g: 1, IsAsync_g: false }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }
+      - name: "w32-ecc2-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 2, RamRdLatency_g: 1, IsAsync_g: false }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }
+
+  # ECC RAM + scrubber. ecc0 vs ft_ram_sdp ecc0 => scrubber-mux delta (3408674095).
+  # ecc0/1/2 => effect of registering the decoder on the SEC->WE path (3408663111).
+  - entity_name: "olo_ft_ram_sdp_scrub"
+    fixed_generics:
+      Depth_g: 256
+    configurations:
+      - name: "w32-ecc0-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 0, RamRdLatency_g: 1 }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }
+      - name: "w32-ecc1-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 1, RamRdLatency_g: 1 }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }
+      - name: "w32-ecc2-lat1"
+        generics: { Width_g: 32, EccPipeline_g: 2, RamRdLatency_g: 1 }
+        in_reduce: { Wr_Data: 32, ErrInj_BitFlip: 39 }
+        out_reduce: { Rd_Data: 32 }

@@ -1,0 +1,723 @@
+Timing Report Max Delay Analysis
+
+SmartTime Version 2025.2
+Microchip Technology Inc. - Microchip Libero Software Release 2025.2 (Version 2025.2.0.14)
+Date: Tue Jun 16 11:58:21 2026
+
+
+Design: test
+Family: PolarFireSoC
+Die: MPFS250T_ES
+Package: FCVG484
+Temperature Range: 0 - 100 C
+Voltage Range: 0.97 - 1.03 V
+Speed Grade: STD
+Design State: Post-Layout
+Data source: Production
+Operating Conditions: slow_lv_ht
+
+
+-----------------------------------------------------
+SUMMARY
+
+Clock Domain:               Clk
+Period (ns):                3.594
+Frequency (MHz):            278.242
+Required Period (ns):       5.000
+Required Frequency (MHz):   200.000
+External Setup (ns):        1.089
+Max Clock-To-Out (ns):      9.378
+
+Clock Domain:               Framework_Clk
+Period (ns):                2.000
+Frequency (MHz):            500.000
+Required Period (ns):       5.000
+Required Frequency (MHz):   200.000
+External Setup (ns):        0.735
+Max Clock-To-Out (ns):      8.708
+
+                            Input to Output
+Max Delay (ns):             N/A
+
+Clock frequency estimation does not account for clock jitter nor clock uncertainty.
+
+END SUMMARY
+-----------------------------------------------------
+
+Clock Domain Clk
+
+SET Register to Register
+
+Path 1
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To:   i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[1]:D
+  Delay (ns):              3.293
+  Slack (ns):              1.406
+  Arrival (ns):            7.449
+  Required (ns):           8.855
+  Setup (ns):              0.000
+  Minimum Period (ns):     3.594
+
+Path 2
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To:   i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[3]:D
+  Delay (ns):              3.272
+  Slack (ns):              1.429
+  Arrival (ns):            7.428
+  Required (ns):           8.857
+  Setup (ns):              0.000
+  Minimum Period (ns):     3.571
+
+Path 3
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To:   i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[12]:D
+  Delay (ns):              3.278
+  Slack (ns):              1.430
+  Arrival (ns):            7.434
+  Required (ns):           8.864
+  Setup (ns):              0.000
+  Minimum Period (ns):     3.570
+
+Path 4
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To:   i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0_OLDA[16]:D
+  Delay (ns):              3.259
+  Slack (ns):              1.432
+  Arrival (ns):            7.415
+  Required (ns):           8.847
+  Setup (ns):              0.000
+  Minimum Period (ns):     3.568
+
+Path 5
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To:   i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[20]:D
+  Delay (ns):              3.254
+  Slack (ns):              1.446
+  Arrival (ns):            7.410
+  Required (ns):           8.856
+  Setup (ns):              0.000
+  Minimum Period (ns):     3.554
+
+
+Expanded Path 1
+  From: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK
+  To: i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[1]:D
+  data required time                                  8.855
+  data arrival time                          -        7.449
+  slack                                               1.406
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        Clk
+               +     0.000          Clock source
+  0.000                        Clk (r)
+               +     0.000          net: Clk
+  0.000                        Clk_ibuf/U_IOPAD:PAD (r)
+               +     1.505          cell: ADLIB:IOPAD_IN
+  1.505                        Clk_ibuf/U_IOPAD:Y (r)
+               +     0.295          net: Clk_ibuf/YIN
+  1.800                        I_1/U0_IOBA:A (r)
+               +     0.226          cell: ADLIB:ICB_CLKINT
+  2.026                        I_1/U0_IOBA:Y (r)
+               +     0.552          net: Clk_ibuf_Z
+  2.578                        I_1:A (r)
+               +     0.180          cell: ADLIB:GB
+  2.758                        I_1:Y (r)
+               +     0.455          net: I_1/U0_Y
+  3.213                        I_1/U0_RGB1:A (r)
+               +     0.064          cell: ADLIB:RGB
+  3.277                        I_1/U0_RGB1:Y (f)
+               +     0.879          net: NN_1
+  4.156                        i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:A_CLK (r)
+               +     2.721          cell: ADLIB:RAM1K20_IP
+  6.877                        i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0/INST_RAM1K20_IP:B_DOUT[1] (f)
+               +     0.368          net: i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0_NEWA[1]
+  7.245                        i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0_OUTA[1]:B (f)
+               +     0.080          cell: ADLIB:CFG3
+  7.325                        i_dut/i_ram/g_nobe.i_ram/mem_v_mem_v_0_0_OUTA[1]:Y (f)
+               +     0.124          net: i_dut/i_ram/g_nobe.i_ram/RdPipe_1[1]
+  7.449                        i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[1]:D (f)
+                                    
+  7.449                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  5.000                        Clk
+               +     0.000          Clock source
+  5.000                        Clk (r)
+               +     0.000          net: Clk
+  5.000                        Clk_ibuf/U_IOPAD:PAD (r)
+               +     1.304          cell: ADLIB:IOPAD_IN
+  6.304                        Clk_ibuf/U_IOPAD:Y (r)
+               +     0.269          net: Clk_ibuf/YIN
+  6.573                        I_1/U0_IOBA:A (r)
+               +     0.196          cell: ADLIB:ICB_CLKINT
+  6.769                        I_1/U0_IOBA:Y (r)
+               +     0.503          net: Clk_ibuf_Z
+  7.272                        I_1:A (r)
+               +     0.164          cell: ADLIB:GB
+  7.436                        I_1:Y (r)
+               +     0.411          net: I_1/U0_Y
+  7.847                        I_1/U0_RGB1:A (r)
+               +     0.056          cell: ADLIB:RGB
+  7.903                        I_1/U0_RGB1:Y (f)
+               +     0.578          net: NN_1
+  8.481                        i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[1]:CLK (r)
+               +     0.374          
+  8.855                        clock reconvergence pessimism
+               -     0.000          Library setup time: ADLIB:SLE
+  8.855                        i_dut/i_ram/g_nobe.i_ram/p_ram.RdPipe_2[1]:D
+                                    
+  8.855                        data required time
+
+
+END SET Register to Register
+
+----------------------------------------------------
+
+SET External Setup
+
+Path 1
+  From: Rst
+  To:   i_dut/i_enc/ErrInj_Pending[22]:EN
+  Delay (ns):              4.408
+  Arrival (ns):            4.408
+  Setup (ns):              0.163
+  External Setup (ns):     1.089
+
+Path 2
+  From: Rst
+  To:   i_dut/i_enc/ErrInj_Pending[3]:SLn
+  Delay (ns):              4.342
+  Arrival (ns):            4.342
+  Setup (ns):              0.081
+  External Setup (ns):     0.923
+
+Path 3
+  From: Rst
+  To:   i_dut/i_enc/ErrInj_Pending[30]:SLn
+  Delay (ns):              4.342
+  Arrival (ns):            4.342
+  Setup (ns):              0.081
+  External Setup (ns):     0.922
+
+Path 4
+  From: Rst
+  To:   i_dut/i_enc/ErrInj_Pending[6]:SLn
+  Delay (ns):              4.339
+  Arrival (ns):            4.339
+  Setup (ns):              0.081
+  External Setup (ns):     0.919
+
+Path 5
+  From: Rst
+  To:   i_dut/i_enc/ErrInj_Pending[0]:SLn
+  Delay (ns):              4.338
+  Arrival (ns):            4.338
+  Setup (ns):              0.081
+  External Setup (ns):     0.918
+
+
+Expanded Path 1
+  From: Rst
+  To: i_dut/i_enc/ErrInj_Pending[22]:EN
+  data required time                                    N/C
+  data arrival time                          -        4.408
+  slack                                                 N/C
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        Rst (r)
+               +     0.000          net: Rst
+  0.000                        Rst_ibuf/U_IOPAD:PAD (r)
+               +     1.505          cell: ADLIB:IOPAD_IN
+  1.505                        Rst_ibuf/U_IOPAD:Y (r)
+               +     0.000          net: Rst_ibuf/YIN
+  1.505                        Rst_ibuf/U_IOIN:YIN (r)
+               +     0.336          cell: ADLIB:IOIN_IB_E
+  1.841                        Rst_ibuf/U_IOIN:Y (r)
+               +     1.313          net: Rst_c
+  3.154                        i_dut/i_enc/un2_in_valid_2_or:C (r)
+               +     0.197          cell: ADLIB:CFG3
+  3.351                        i_dut/i_enc/un2_in_valid_2_or:Y (r)
+               +     1.057          net: i_dut/i_enc/un2_in_valid_2_or_Z
+  4.408                        i_dut/i_enc/ErrInj_Pending[22]:EN (r)
+                                    
+  4.408                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  N/C                          Clk
+               +     0.000          Clock source
+  N/C                          Clk (r)
+               +     0.000          net: Clk
+  N/C                          Clk_ibuf/U_IOPAD:PAD (r)
+               +     1.304          cell: ADLIB:IOPAD_IN
+  N/C                          Clk_ibuf/U_IOPAD:Y (r)
+               +     0.269          net: Clk_ibuf/YIN
+  N/C                          I_1/U0_IOBA:A (r)
+               +     0.196          cell: ADLIB:ICB_CLKINT
+  N/C                          I_1/U0_IOBA:Y (r)
+               +     0.503          net: Clk_ibuf_Z
+  N/C                          I_1:A (r)
+               +     0.164          cell: ADLIB:GB
+  N/C                          I_1:Y (r)
+               +     0.411          net: I_1/U0_Y
+  N/C                          I_1/U0_RGB1:A (r)
+               +     0.056          cell: ADLIB:RGB
+  N/C                          I_1/U0_RGB1:Y (f)
+               +     0.579          net: NN_1
+  N/C                          i_dut/i_enc/ErrInj_Pending[22]:CLK (r)
+               -     0.163          Library setup time: ADLIB:SLE
+  N/C                          i_dut/i_enc/ErrInj_Pending[22]:EN
+
+
+END SET External Setup
+
+----------------------------------------------------
+
+SET Clock to Output
+
+Path 1
+  From: RdEccDed_Z:CLK
+  To:   RdEccDed
+  Delay (ns):              5.462
+  Arrival (ns):            9.378
+  Clock to Out (ns):       9.378
+
+Path 2
+  From: RdValid_Z:CLK
+  To:   RdValid
+  Delay (ns):              5.421
+  Arrival (ns):            9.369
+  Clock to Out (ns):       9.369
+
+Path 3
+  From: RdEccSec_Z:CLK
+  To:   RdEccSec
+  Delay (ns):              5.409
+  Arrival (ns):            9.344
+  Clock to Out (ns):       9.344
+
+
+Expanded Path 1
+  From: RdEccDed_Z:CLK
+  To: RdEccDed
+  data required time                                    N/C
+  data arrival time                          -        9.378
+  slack                                                 N/C
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        Clk
+               +     0.000          Clock source
+  0.000                        Clk (r)
+               +     0.000          net: Clk
+  0.000                        Clk_ibuf/U_IOPAD:PAD (r)
+               +     1.505          cell: ADLIB:IOPAD_IN
+  1.505                        Clk_ibuf/U_IOPAD:Y (r)
+               +     0.295          net: Clk_ibuf/YIN
+  1.800                        I_1/U0_IOBA:A (r)
+               +     0.226          cell: ADLIB:ICB_CLKINT
+  2.026                        I_1/U0_IOBA:Y (r)
+               +     0.552          net: Clk_ibuf_Z
+  2.578                        I_1:A (r)
+               +     0.180          cell: ADLIB:GB
+  2.758                        I_1:Y (r)
+               +     0.455          net: I_1/U0_Y
+  3.213                        I_1/U0_RGB1:A (r)
+               +     0.064          cell: ADLIB:RGB
+  3.277                        I_1/U0_RGB1:Y (f)
+               +     0.639          net: NN_1
+  3.916                        RdEccDed_Z:CLK (r)
+               +     0.222          cell: ADLIB:SLE
+  4.138                        RdEccDed_Z:Q (f)
+               +     0.810          net: RdEccDed_c
+  4.948                        RdEccDed_obuf/U_IOTRI:D (f)
+               +     0.918          cell: ADLIB:IOTRI_OB_EB
+  5.866                        RdEccDed_obuf/U_IOTRI:DOUT (f)
+               +     0.000          net: RdEccDed_obuf/DOUT
+  5.866                        RdEccDed_obuf/U_IOPAD:D (f)
+               +     3.512          cell: ADLIB:IOPAD_TRI
+  9.378                        RdEccDed_obuf/U_IOPAD:PAD (f)
+               +     0.000          net: RdEccDed
+  9.378                        RdEccDed (f)
+                                    
+  9.378                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  N/C                          Clk
+                                    
+  N/C                          RdEccDed (f)
+
+
+END SET Clock to Output
+
+----------------------------------------------------
+
+SET Framework_Clk to Clk
+
+No Path 
+
+END SET Framework_Clk to Clk
+
+----------------------------------------------------
+
+SET Register to Asynchronous
+
+No Path 
+
+END SET Register to Asynchronous
+
+----------------------------------------------------
+
+SET External Recovery
+
+No Path 
+
+END SET External Recovery
+
+----------------------------------------------------
+
+SET Asynchronous to Register
+
+No Path 
+
+END SET Asynchronous to Register
+
+----------------------------------------------------
+
+Clock Domain Framework_Clk
+
+Info: The maximum frequency of this clock domain is limited by the period of pin I_2/U0_RGB1:A
+
+SET Register to Register
+
+Path 1
+  From: i_out_reduce/ShiftReg[11]:CLK
+  To:   i_out_reduce/ShiftReg[12]:D
+  Delay (ns):              0.914
+  Slack (ns):              4.045
+  Arrival (ns):            4.182
+  Required (ns):           8.227
+  Setup (ns):              0.000
+  Minimum Period (ns):     0.955
+
+Path 2
+  From: i_in_reduce/ShiftReg_33[0]:CLK
+  To:   i_in_reduce/ShiftReg_34[0]:D
+  Delay (ns):              0.901
+  Slack (ns):              4.060
+  Arrival (ns):            4.175
+  Required (ns):           8.235
+  Setup (ns):              0.000
+  Minimum Period (ns):     0.940
+
+Path 3
+  From: i_in_reduce/ShiftReg_21[0]:CLK
+  To:   i_in_reduce/ShiftReg_22[0]:D
+  Delay (ns):              0.890
+  Slack (ns):              4.079
+  Arrival (ns):            4.158
+  Required (ns):           8.237
+  Setup (ns):              0.000
+  Minimum Period (ns):     0.921
+
+Path 4
+  From: i_in_reduce/ShiftReg_21[0]:CLK
+  To:   i_in_reduce/DutPorts[21]:D
+  Delay (ns):              0.889
+  Slack (ns):              4.080
+  Arrival (ns):            4.157
+  Required (ns):           8.237
+  Setup (ns):              0.000
+  Minimum Period (ns):     0.920
+
+Path 5
+  From: i_in_reduce/ShiftReg_37[0]:CLK
+  To:   i_in_reduce/ShiftReg_38[0]:D
+  Delay (ns):              0.853
+  Slack (ns):              4.082
+  Arrival (ns):            4.139
+  Required (ns):           8.221
+  Setup (ns):              0.000
+  Minimum Period (ns):     0.918
+
+
+Expanded Path 1
+  From: i_out_reduce/ShiftReg[11]:CLK
+  To: i_out_reduce/ShiftReg[12]:D
+  data required time                                  8.227
+  data arrival time                          -        4.182
+  slack                                               4.045
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        Framework_Clk
+               +     0.000          Clock source
+  0.000                        Framework_Clk (r)
+               +     0.000          net: Framework_Clk
+  0.000                        Framework_Clk_ibuf/U_IOPAD:PAD (r)
+               +     0.727          cell: ADLIB:IOPAD_IN
+  0.727                        Framework_Clk_ibuf/U_IOPAD:Y (r)
+               +     0.291          net: Framework_Clk_ibuf/YIN
+  1.018                        I_2/U0_IOBA:A (r)
+               +     0.163          cell: ADLIB:ICB_CLKINT
+  1.181                        I_2/U0_IOBA:Y (r)
+               +     0.693          net: Framework_Clk_ibuf_Z
+  1.874                        I_2:A (r)
+               +     0.199          cell: ADLIB:GB
+  2.073                        I_2:Y (r)
+               +     0.461          net: I_2/U0_Y
+  2.534                        I_2/U0_RGB1:A (r)
+               +     0.064          cell: ADLIB:RGB
+  2.598                        I_2/U0_RGB1:Y (f)
+               +     0.670          net: NN_2
+  3.268                        i_out_reduce/ShiftReg[11]:CLK (r)
+               +     0.239          cell: ADLIB:SLE
+  3.507                        i_out_reduce/ShiftReg[11]:Q (r)
+               +     0.588          net: i_out_reduce/ShiftReg_Z[11]
+  4.095                        i_out_reduce/p_reduce.ShiftReg_3[12]:B (r)
+               +     0.060          cell: ADLIB:CFG3
+  4.155                        i_out_reduce/p_reduce.ShiftReg_3[12]:Y (r)
+               +     0.027          net: i_out_reduce/ShiftReg_3[12]
+  4.182                        i_out_reduce/ShiftReg[12]:D (r)
+                                    
+  4.182                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  5.000                        Framework_Clk
+               +     0.000          Clock source
+  5.000                        Framework_Clk (r)
+               +     0.000          net: Framework_Clk
+  5.000                        Framework_Clk_ibuf/U_IOPAD:PAD (r)
+               +     0.630          cell: ADLIB:IOPAD_IN
+  5.630                        Framework_Clk_ibuf/U_IOPAD:Y (r)
+               +     0.265          net: Framework_Clk_ibuf/YIN
+  5.895                        I_2/U0_IOBA:A (r)
+               +     0.141          cell: ADLIB:ICB_CLKINT
+  6.036                        I_2/U0_IOBA:Y (r)
+               +     0.630          net: Framework_Clk_ibuf_Z
+  6.666                        I_2:A (r)
+               +     0.181          cell: ADLIB:GB
+  6.847                        I_2:Y (r)
+               +     0.419          net: I_2/U0_Y
+  7.266                        I_2/U0_RGB1:A (r)
+               +     0.056          cell: ADLIB:RGB
+  7.322                        I_2/U0_RGB1:Y (f)
+               +     0.600          net: NN_2
+  7.922                        i_out_reduce/ShiftReg[12]:CLK (r)
+               +     0.305          
+  8.227                        clock reconvergence pessimism
+               -     0.000          Library setup time: ADLIB:SLE
+  8.227                        i_out_reduce/ShiftReg[12]:D
+                                    
+  8.227                        data required time
+
+
+END SET Register to Register
+
+----------------------------------------------------
+
+SET External Setup
+
+Path 1
+  From: InReduce_Latch
+  To:   i_in_reduce/DutPorts[57]:EN
+  Delay (ns):              3.501
+  Arrival (ns):            3.501
+  Setup (ns):              0.163
+  External Setup (ns):     0.735
+
+Path 2
+  From: InReduce_Latch
+  To:   i_in_reduce/DutPorts[58]:EN
+  Delay (ns):              3.501
+  Arrival (ns):            3.501
+  Setup (ns):              0.163
+  External Setup (ns):     0.735
+
+Path 3
+  From: InReduce_Latch
+  To:   i_in_reduce/DutPorts[0]:EN
+  Delay (ns):              3.369
+  Arrival (ns):            3.369
+  Setup (ns):              0.152
+  External Setup (ns):     0.601
+
+Path 4
+  From: InReduce_Latch
+  To:   i_in_reduce/DutPorts[1]:EN
+  Delay (ns):              3.368
+  Arrival (ns):            3.368
+  Setup (ns):              0.152
+  External Setup (ns):     0.600
+
+Path 5
+  From: InReduce_Latch
+  To:   i_in_reduce/DutPorts[2]:EN
+  Delay (ns):              3.368
+  Arrival (ns):            3.368
+  Setup (ns):              0.152
+  External Setup (ns):     0.600
+
+
+Expanded Path 1
+  From: InReduce_Latch
+  To: i_in_reduce/DutPorts[57]:EN
+  data required time                                    N/C
+  data arrival time                          -        3.501
+  slack                                                 N/C
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        InReduce_Latch (r)
+               +     0.000          net: InReduce_Latch
+  0.000                        InReduce_Latch_ibuf/U_IOPAD:PAD (r)
+               +     1.505          cell: ADLIB:IOPAD_IN
+  1.505                        InReduce_Latch_ibuf/U_IOPAD:Y (r)
+               +     0.000          net: InReduce_Latch_ibuf/YIN
+  1.505                        InReduce_Latch_ibuf/U_IOIN:YIN (r)
+               +     0.336          cell: ADLIB:IOIN_IB_E
+  1.841                        InReduce_Latch_ibuf/U_IOIN:Y (r)
+               +     1.660          net: InReduce_Latch_c
+  3.501                        i_in_reduce/DutPorts[57]:EN (r)
+                                    
+  3.501                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  N/C                          Framework_Clk
+               +     0.000          Clock source
+  N/C                          Framework_Clk (r)
+               +     0.000          net: Framework_Clk
+  N/C                          Framework_Clk_ibuf/U_IOPAD:PAD (r)
+               +     0.630          cell: ADLIB:IOPAD_IN
+  N/C                          Framework_Clk_ibuf/U_IOPAD:Y (r)
+               +     0.265          net: Framework_Clk_ibuf/YIN
+  N/C                          I_2/U0_IOBA:A (r)
+               +     0.141          cell: ADLIB:ICB_CLKINT
+  N/C                          I_2/U0_IOBA:Y (r)
+               +     0.630          net: Framework_Clk_ibuf_Z
+  N/C                          I_2:A (r)
+               +     0.181          cell: ADLIB:GB
+  N/C                          I_2:Y (r)
+               +     0.419          net: I_2/U0_Y
+  N/C                          I_2/U0_RGB1:A (r)
+               +     0.056          cell: ADLIB:RGB
+  N/C                          I_2/U0_RGB1:Y (f)
+               +     0.607          net: NN_2
+  N/C                          i_in_reduce/DutPorts[57]:CLK (r)
+               -     0.163          Library setup time: ADLIB:SLE
+  N/C                          i_in_reduce/DutPorts[57]:EN
+
+
+END SET External Setup
+
+----------------------------------------------------
+
+SET Clock to Output
+
+Path 1
+  From: i_out_reduce/ShiftReg[31]:CLK
+  To:   OutReduce_Data
+  Delay (ns):              5.440
+  Arrival (ns):            8.708
+  Clock to Out (ns):       8.708
+
+Path 2
+  From: Framework_Dout_Z:CLK
+  To:   Framework_Dout
+  Delay (ns):              5.268
+  Arrival (ns):            8.555
+  Clock to Out (ns):       8.555
+
+
+Expanded Path 1
+  From: i_out_reduce/ShiftReg[31]:CLK
+  To: OutReduce_Data
+  data required time                                    N/C
+  data arrival time                          -        8.708
+  slack                                                 N/C
+  ________________________________________________________
+  Data arrival time calculation
+  0.000                        Framework_Clk
+               +     0.000          Clock source
+  0.000                        Framework_Clk (r)
+               +     0.000          net: Framework_Clk
+  0.000                        Framework_Clk_ibuf/U_IOPAD:PAD (r)
+               +     0.727          cell: ADLIB:IOPAD_IN
+  0.727                        Framework_Clk_ibuf/U_IOPAD:Y (r)
+               +     0.291          net: Framework_Clk_ibuf/YIN
+  1.018                        I_2/U0_IOBA:A (r)
+               +     0.163          cell: ADLIB:ICB_CLKINT
+  1.181                        I_2/U0_IOBA:Y (r)
+               +     0.693          net: Framework_Clk_ibuf_Z
+  1.874                        I_2:A (r)
+               +     0.199          cell: ADLIB:GB
+  2.073                        I_2:Y (r)
+               +     0.461          net: I_2/U0_Y
+  2.534                        I_2/U0_RGB1:A (r)
+               +     0.064          cell: ADLIB:RGB
+  2.598                        I_2/U0_RGB1:Y (f)
+               +     0.670          net: NN_2
+  3.268                        i_out_reduce/ShiftReg[31]:CLK (r)
+               +     0.222          cell: ADLIB:SLE
+  3.490                        i_out_reduce/ShiftReg[31]:Q (f)
+               +     0.785          net: OutReduce_Data_c
+  4.275                        OutReduce_Data_obuf/U_IOTRI:D (f)
+               +     0.918          cell: ADLIB:IOTRI_OB_EB
+  5.193                        OutReduce_Data_obuf/U_IOTRI:DOUT (f)
+               +     0.000          net: OutReduce_Data_obuf/DOUT
+  5.193                        OutReduce_Data_obuf/U_IOPAD:D (f)
+               +     3.515          cell: ADLIB:IOPAD_TRI
+  8.708                        OutReduce_Data_obuf/U_IOPAD:PAD (f)
+               +     0.000          net: OutReduce_Data
+  8.708                        OutReduce_Data (f)
+                                    
+  8.708                        data arrival time
+  ________________________________________________________
+  Data required time calculation
+  N/C                          Framework_Clk
+                                    
+  N/C                          OutReduce_Data (f)
+
+
+END SET Clock to Output
+
+----------------------------------------------------
+
+SET Clk to Framework_Clk
+
+No Path 
+
+END SET Clk to Framework_Clk
+
+----------------------------------------------------
+
+SET Register to Asynchronous
+
+No Path 
+
+END SET Register to Asynchronous
+
+----------------------------------------------------
+
+SET External Recovery
+
+No Path 
+
+END SET External Recovery
+
+----------------------------------------------------
+
+SET Asynchronous to Register
+
+No Path 
+
+END SET Asynchronous to Register
+
+----------------------------------------------------
+
+Path set Pin to Pin
+
+SET Input to Output
+
+No Path 
+
+END SET Input to Output
+
+----------------------------------------------------
+

@@ -1,0 +1,53 @@
+Base path: D:\git\open-logic\tools\inference_test\yaml
+*** Document Version Info ***
+libero
+*** Execute Tests ***
+> File: olo_base_ram_sdp
+  > Tool: libero
+    > Config: lat1                           [02:33]  Fmax(Clk)=342.9 MHz
+    > Config: lat2                           [02:33]  Fmax(Clk)=342.9 MHz
++--------+-----------+------+------+-------+
+| Config | Block RAM | DSPs | LUTs |  SLEs |
++--------+-----------+------+------+-------+
+|  lat1  |    1.0    | 0.0  | 1.0  | 113.0 |
+|  lat2  |    1.0    | 0.0  | 2.0  | 146.0 |
++--------+-----------+------+------+-------+
+> File: olo_ft_ram_sdp
+  > Tool: libero
+    > Config: ecc0-lat1                      [02:35]  Fmax(Clk)=172.8 MHz
+    > Config: ecc0-lat2                      [02:37]  Fmax(Clk)=276.7 MHz
+    > Config: ecc1-lat1                      [02:36]  Fmax(Clk)=168.3 MHz
+    > Config: ecc1-lat2                      [02:38]  Fmax(Clk)=272.6 MHz
+    > Config: ecc2-lat1                      [02:42]  Fmax(Clk)=207.0 MHz
+    > Config: ecc2-lat2                      [02:53]  Fmax(Clk)=280.5 MHz
++-----------+-----------+------+-------+-------+
+|   Config  | Block RAM | DSPs |  LUTs |  SLEs |
++-----------+-----------+------+-------+-------+
+| ecc0-lat1 |    1.0    | 0.0  | 180.0 | 203.0 |
+| ecc0-lat2 |    1.0    | 0.0  | 182.0 | 243.0 |
+| ecc1-lat1 |    1.0    | 0.0  | 171.0 | 238.0 |
+| ecc1-lat2 |    1.0    | 0.0  | 167.0 | 278.0 |
+| ecc2-lat1 |    1.0    | 0.0  | 154.0 | 288.0 |
+| ecc2-lat2 |    1.0    | 0.0  | 154.0 | 325.0 |
++-----------+-----------+------+-------+-------+
+> File: olo_ft_ram_sdp_scrub
+  > Tool: libero
+    > Config: ecc0-lat1                      [02:44]  Fmax(Clk)=174.4 MHz
+    > Config: ecc0-lat2                      [02:48]  Fmax(Clk)=253.8 MHz
+    > Config: ecc1-lat1                      [02:45]  Fmax(Clk)=161.7 MHz
+    > Config: ecc1-lat2                      [02:42]  Fmax(Clk)=247.8 MHz
+    > Config: ecc2-lat1                      [02:39]  Fmax(Clk)=201.0 MHz
+    > Config: ecc2-lat2                      [02:44]  Fmax(Clk)=273.3 MHz
++-----------+-----------+------+-------+-------+
+|   Config  | Block RAM | DSPs |  LUTs |  SLEs |
++-----------+-----------+------+-------+-------+
+| ecc0-lat1 |    1.0    | 0.0  | 255.0 | 219.0 |
+| ecc0-lat2 |    1.0    | 0.0  | 269.0 | 268.0 |
+| ecc1-lat1 |    1.0    | 0.0  | 246.0 | 256.0 |
+| ecc1-lat2 |    1.0    | 0.0  | 259.0 | 304.0 |
+| ecc2-lat1 |    1.0    | 0.0  | 257.0 | 310.0 |
+| ecc2-lat2 |    1.0    | 0.0  | 265.0 | 352.0 |
++-----------+-----------+------+-------+-------+
+Overall Runtime: 00:37:35
+
+*** Done ***

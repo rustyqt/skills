@@ -1,0 +1,128 @@
+# ---------------------------------------------------------------------------------------------------
+# Copyright (c) 2025 by Oliver Bruendler
+# Authors: Oliver Bruendler
+# ---------------------------------------------------------------------------------------------------
+from typing import List
+from jinja2 import Environment, FileSystemLoader
+from ToolBase import ToolBase
+import os
+import subprocess
+
+class ToolLibero(ToolBase):
+
+    LIBERO_FOLDER = os.path.abspath("./tools/libero")
+    IMPORT_SOURCES = os.path.abspath("../libero/import_sources.tcl")
+
+    def __init__(self):
+        super().__init__()
+
+    def sythesize(self, files : List[str], top_entity : str):
+        # Call parent method
+        super().sythesize(files, top_entity)
+
+        # Sythesize. Forward-slash paths so the rendered Tcl script doesn't trip over
+        # backslash-as-escape interpretation on Windows.
+        data = {
+            "project_folder" : self.PROJECT_FOLDER.replace("\\", "/"),
+            "top_entity" : top_entity,
+            "src_files" : [os.path.abspath(p).replace("\\", "/") for p in files],
+            "import_sources" : self.IMPORT_SOURCES.replace("\\", "/"),
+            "fmax" : os.environ.get("OLO_TIMING_REGS") == "1"
+        }
+
+        # Create Libero script. Loader rooted at the tool's folder so the path stays relative
+        # (cross-platform; the previous FileSystemLoader("/") variant failed on Windows).
+        env = Environment(loader=FileSystemLoader(self.LIBERO_FOLDER))
+        template = env.get_template("synthesize.template")
+        rendered_template = template.render(data)
+        with open(f"{self.PROJECT_FOLDER}/synthesize.tcl", "w+") as f:
+            f.write(rendered_template)
+
+        # Call Synthesis. subprocess.run is cross-platform (pexpect.spawn is Unix-only).
+        cur_dir = os.path.abspath(os.curdir)
+        os.chdir(self.PROJECT_FOLDER)
+        try:
+            result = subprocess.run(
+                ["libero", "script:synthesize.tcl"],
+                capture_output=True, text=True, timeout=30*60, shell=True
+            )
+            with open("libero.log", "w+") as f:
+                f.write(result.stdout + result.stderr)
+            if result.returncode != 0:
+                raise RuntimeError(f"Libero Compilation Failed - see log, code {result.returncode}")
+        finally:
+            os.chdir(cur_dir)
+
+    def get_version(self) -> str:
+        return "Libero: version cannot be retrieved from commandline."
+    
+    def get_resource_usage(self) -> dict:
+        resource_usage = {
+            "Block RAM": 0,
+            "DSPs": 0,
+            "LUTs": 0,
+            "SLEs": 0
+        }
+
+        # Find summary ile
+        summary_file = self._find_file_in_project(".srr")
+
+        # Extract resource usage
+        with open(summary_file, "r") as f:
+            for line in f:
+                if "Total Block RAMs " in line:
+                    resource_usage["Block RAM"] = float(line.split(":")[1].strip().split(" ")[0])
+                elif "Total LUTs" in line:
+                    resource_usage["LUTs"] = float(line.split(":")[1].strip())
+                elif "DSP Blocks: " in line:
+                    resource_usage["DSPs"] = float(line.split(":")[1].strip().split(" ")[0])
+                elif "Total number of SLEs after P&R: " in line:
+                    resource_usage["SLEs"] = float(line.split("=")[1].strip().strip(";").split(" ")[0])
+
+        return resource_usage
+    
+    def get_in_reduce_resources(self, size) -> dict:
+        return {
+            "Block RAM": 0,
+            "DSPs": 0,
+            "LUTs": 0,
+            "SLEs": size*2
+        }
+    
+    def get_out_reduce_resources(self, size) -> dict:
+        return {
+            "Block RAM": 0,
+            "DSPs": 0,
+            "LUTs": size,
+            "SLEs": size
+        }
+    
+    def check_drc(self):
+        # Latches
+        log = self._find_file_in_project(".srr")
+        with open(log, "r") as f:
+            text = f.read()
+            if "Latch generated" in text:
+                raise RuntimeError(f"DRC Violation: Latch detected - see reports and logs")
+
+    def get_fmax(self, clock_domain : str = "Clk") -> float:
+        """
+        Parse the SmartTime max-delay report (max_timing.rpt) and return the achieved maximum
+        frequency in MHz for the given clock domain (default: the DUT's Clk). Returns 0.0 if the
+        report or the domain is missing.
+        """
+        rpt = os.path.join(self.PROJECT_FOLDER, "max_timing.rpt")
+        if not os.path.exists(rpt):
+            return 0.0
+        with open(rpt, "r") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.strip().startswith("Clock Domain:"):
+                domain = line.split(":", 1)[1].strip()
+                if domain == clock_domain:
+                    for j in range(i, min(i + 8, len(lines))):
+                        if "Frequency (MHz):" in lines[j] and "Required" not in lines[j]:
+                            return float(lines[j].split(":", 1)[1].strip())
+        return 0.0
+
+    

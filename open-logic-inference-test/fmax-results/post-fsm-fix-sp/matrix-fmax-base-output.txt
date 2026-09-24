@@ -1,0 +1,17 @@
+Base path: D:\git\open-logic-scrubber\tools\inference_test\yaml
+*** Document Version Info ***
+libero
+*** Execute Tests ***
+> File: olo_base_ram_sp
+  > Tool: libero
+    > Config: w32-lat1                       [02:32]  Fmax(Clk)=281.4 MHz
+    > Config: w32-lat2                       [02:55]  Fmax(Clk)=262.5 MHz
++----------+-----------+------+------+-------+
+|  Config  | Block RAM | DSPs | LUTs |  SLEs |
++----------+-----------+------+------+-------+
+| w32-lat1 |    1.0    | 0.0  | 33.0 | 146.0 |
+| w32-lat2 |    1.0    | 0.0  | 34.0 | 179.0 |
++----------+-----------+------+------+-------+
+Overall Runtime: 00:05:28
+
+*** Done ***

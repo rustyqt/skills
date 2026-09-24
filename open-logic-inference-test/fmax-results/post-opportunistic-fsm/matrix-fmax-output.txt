@@ -1,0 +1,43 @@
+Base path: D:\git\open-logic-scrubber\tools\inference_test\yaml
+*** Document Version Info ***
+libero
+*** Execute Tests ***
+> File: olo_ft_ram_sdp_scrub
+  > Tool: libero
+    > Config: ecc0-lat1                      [03:41]  Fmax(Clk)=165.3 MHz
+    > Config: ecc1-lat1                      [02:54]  Fmax(Clk)=167.5 MHz
+    > Config: ecc2-lat1                      [02:54]  Fmax(Clk)=211.0 MHz
+    > Config: ecc0-lat2                      [03:12]  Fmax(Clk)=264.3 MHz
+    > Config: ecc1-lat2                      [03:01]  Fmax(Clk)=268.5 MHz
+    > Config: ecc2-lat2                      [02:51]  Fmax(Clk)=267.0 MHz
++-----------+-----------+------+-------+-------+
+|   Config  | Block RAM | DSPs |  LUTs |  SLEs |
++-----------+-----------+------+-------+-------+
+| ecc0-lat1 |    1.0    | 0.0  | 299.0 | 253.0 |
+| ecc1-lat1 |    1.0    | 0.0  | 280.0 | 291.0 |
+| ecc2-lat1 |    1.0    | 0.0  | 393.0 | 342.0 |
+| ecc0-lat2 |    1.0    | 0.0  | 291.0 | 305.0 |
+| ecc1-lat2 |    1.0    | 0.0  | 358.0 | 335.0 |
+| ecc2-lat2 |    1.0    | 0.0  | 276.0 | 384.0 |
++-----------+-----------+------+-------+-------+
+> File: olo_ft_ram_sp_scrub
+  > Tool: libero
+    > Config: ecc0-lat1                      [02:52]  Fmax(Clk)=139.1 MHz
+    > Config: ecc1-lat1                      [02:56]  Fmax(Clk)=144.7 MHz
+    > Config: ecc2-lat1                      [02:52]  Fmax(Clk)=211.0 MHz
+    > Config: ecc0-lat2                      [02:51]  Fmax(Clk)=268.0 MHz
+    > Config: ecc1-lat2                      [02:51]  Fmax(Clk)=263.4 MHz
+    > Config: ecc2-lat2                      [02:55]  Fmax(Clk)=262.2 MHz
++-----------+-----------+------+-------+-------+
+|   Config  | Block RAM | DSPs |  LUTs |  SLEs |
++-----------+-----------+------+-------+-------+
+| ecc0-lat1 |    1.0    | 0.0  | 308.0 | 245.0 |
+| ecc1-lat1 |    1.0    | 0.0  | 291.0 | 283.0 |
+| ecc2-lat1 |    1.0    | 0.0  | 244.0 | 343.0 |
+| ecc0-lat2 |    1.0    | 0.0  | 305.0 | 300.0 |
+| ecc1-lat2 |    1.0    | 0.0  | 257.0 | 334.0 |
+| ecc2-lat2 |    1.0    | 0.0  | 268.0 | 387.0 |
++-----------+-----------+------+-------+-------+
+Overall Runtime: 00:35:56
+
+*** Done ***

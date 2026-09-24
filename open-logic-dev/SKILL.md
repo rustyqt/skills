@@ -27,8 +27,8 @@ The official contribution rules and coding conventions are in:
 4) Documentation              → doc/<area>/olo_<area>_<function>.md
                                 + doc/EntityList.md entry
 5) Integration                → compile_order.txt regenerated
-                                + Changelog.md entry
-                                + tools/inference_test/yaml/<area>.yml entry (optional)
+                                + src/<area>/olo_<area>_dev.core regenerated (FuseSoC)
+                                + tools/inference_test/yaml/<area>.yml entry (or private-name exclude)
 6) Verification & lint        → full regression on GHDL (and NVC if installed)
                                 + VSG lint clean
                                 + Coverage check (if Questa is available)
@@ -42,7 +42,7 @@ Entity: olo_<area>_<function>
 - [ ] Phase 2: RTL implemented
 - [ ] Phase 3: Testbench passing on GHDL
 - [ ] Phase 4: Documentation written, entity added to EntityList
-- [ ] Phase 5: compile_order / Changelog / inference-test entries added
+- [ ] Phase 5: compile_order / FuseSoC dev core / inference-test entries added
 - [ ] Phase 6: Full regression green, lint clean
 ```
 
@@ -67,7 +67,8 @@ Cross-cutting files updated once per entity:
 | File | What to update |
 | --- | --- |
 | `compile_order.txt` | regenerated via `python sim/run.py --compile_list` (do **not** edit by hand) |
-| `Changelog.md` | new bullet under the upcoming version |
+| `src/<area>/olo_<area>_dev.core` | regenerated via `tools/fusesoc/UpdateCoreFiles.py` — the FuseSoC dev core enumerates every VHDL file explicitly, so a new entity is invisible to FuseSoC consumers until regenerated (see Phase 5b) |
+| `Changelog.md` | do **not** touch — only the maintainer's release commits update it (see Phase 5d) |
 
 Existing **areas** (see `doc/EntityList.md`):
 
@@ -518,7 +519,15 @@ At minimum:
 - **Edge cases** of every generic (min, max, default).
 - **Back-pressure** for any AXI-Stream entity — exercise `Out_Ready` stalls using `axi_stream_slave_t` with a non-zero `stall_config`.
 - **Random valid** for handshake interfaces — use `axi_stream_master_t` with and use random valid assertion in at least one testcase.
+- **Negative tests** for every error-detection/status feature the entity claims: deliberately provoke the condition from the TB side and pass only if the entity reports it. **Never mutate the RTL to create the fault** — inject through the entity's ports (error-injection inputs, illegal-length stimulus, protocol violations from the VC, a mid-burst reset). A status output nobody has ever seen asserted is unverified.
 - **Coverage of every requirement** stated in the Phase-1 proposal.
+
+For **ft entities** (SECDED/ECC/scrubbing) error-injection tests are mandatory, not optional — this is what the locked `ErrInj_BitFlip`/`ErrInj_Valid` API exists for:
+
+- Single-bit flip in flight → data still correct AND `*EccSec` reports the correction.
+- Double-bit flip → `*EccDed` flags the uncorrectable error.
+- For scrub wrappers: inject into a stored word, let the scrubber visit it, verify the stored word is repaired (read back through the normal port) and the scrub status reports it.
+- At least one injection case runs **concurrently with nominal traffic** — correction logic that only works on an idle datapath is untested where it matters.
 
 If the entity has multiple clock domains, also sweep the source/destination clock ratios — see `sim/test_configs/olo_base.py` for the standard ratio set.
 
@@ -644,26 +653,70 @@ python run.py --compile_list
 
 The script writes the file at the repo root with forward slashes. **Never hand-edit it.** Verify the new entity appears in dependency order between its prerequisites and any RAM/FIFO it builds on.
 
-### 5b — Append to `Changelog.md`
+### 5b — Regenerate the FuseSoC dev core
 
-Add a bullet under the next-release heading describing the new entity in user-facing terms (what it does, key generics).
-
-### 5c — Synthesis inference (optional but recommended)
-
-If the entity is meant for users to instantiate directly, add one representative configuration to `tools/inference_test/yaml/<area>.yml`. Keep the configuration list short (typically one entry per entity) — synthesis runs on the AWS runner are not free.
-
-### 5d — VHDL Language Server config (optional)
-
-If `vhdl_ls.toml` needs the new file, regenerate it:
+`src/<area>/olo_<area>_dev.core` enumerates every VHDL file of the area explicitly — a new entity is invisible to
+FuseSoC consumers until the core is regenerated. **Never hand-edit core files.**
 
 ```bash
-cd sim
-python create_vhdl_ls_config.py
+cd tools/fusesoc
+python UpdateCoreFiles.py --version <current> --cl-fix-version <current-cl-fix>
 ```
+
+Read the current versions out of the existing cores (`name :` line of `src/base/olo_base_dev.core` and of
+`tools/fusesoc/stable/en_cl_fix.core`). The script regenerates cores for ALL areas, the tutorials and the
+`en_cl_fix` submodule, and churns unrelated files (platform-dependent directory ordering, entities added since the
+last release) — `git checkout --` everything except the core you intended to update, and restore the submodule
+(`git -C 3rdParty/en_cl_fix checkout -- en_cl_fix_dev.core`).
+
+**Stable cores are off-limits in feature PRs.** `tools/fusesoc/stable/olo_<area>.core` pins a published release tag,
+so a stable core referencing files that are not in that release is broken by construction. Stable cores are only
+generated by the maintainer's release-time "DOC: update files for release" commit (precedent: the fix area landed
+with only the dev core in PR #140; confirmed again for the ft area in PR #320).
+
+### 5c — Synthesis inference entry (coverage-checked in CI)
+
+CI runs `InferenceTest.py --yml=./yaml/<area>.yml --no-tables --check-coverage` per area
+(`.github/workflows/synthesis.yml`). `--check-coverage` globs every entity under the area's source tree and FAILS
+when an entity is neither configured nor excluded, so this step is **not optional** — every new entity needs one of:
+
+- **User-facing entity:** one representative configuration in `tools/inference_test/yaml/<area>.yml`, following the
+  file's `in_reduce`/`out_reduce` conventions. Keep it to one entry per entity — synthesis runs on the AWS runner
+  are not free.
+- **Private/internal entity:** name it so an existing `exclude_entities` wildcard covers it, instead of adding an
+  exact-name exclude: secondary entities declared inside another entity's file use `olo_private_*`
+  (e.g. `olo_private_ram_tdp_nobe`); standalone private files use `olo_<area>_private_*`
+  (e.g. `olo_fix_private_optional_reg`, `olo_ft_private_scrubber`).
+
+### 5d — `Changelog.md`: leave it alone
+
+Feature PRs do **not** edit `Changelog.md` — `git log -- Changelog.md` shows it is only ever touched by the
+maintainer's release commits ("DOC: update files for release"). Describe the user-facing change in the PR
+description instead.
+
+### 5e — VHDL Language Server config
+
+`vhdl_ls.toml` is gitignored and generated on demand (`python sim/run.py --vhdl_ls`) — nothing to commit.
+
+### If the entity opens a NEW area
+
+Beyond proposing the area in Phase 1, these registries enumerate areas explicitly and fail or silently skip the new
+area until updated:
+
+| File | What to add |
+| --- | --- |
+| `tools/fusesoc/UpdateCoreFiles.py` | `DESCRIPTIONS[<area>]` + `DEPENDENCIES[<area>]` entries — areas are discovered from disk (`os.listdir(src/)`), so a missing dict entry makes the next regeneration crash with `KeyError: '<area>'` |
+| `.github/workflows/synthesis.yml` | a per-area inference step mirroring the existing ones (`InferenceTest.py --yml=./yaml/<area>.yml --no-tables --check-coverage`) |
+| `tools/gowin/import_sources.tcl`, `tools/quartus/import_sources.tcl`, `tools/vivado/import_sources.tcl` | add the area to the imported-areas list (the ft area was initially missed here and fixed post-merge by the maintainer; Libero and the Yosys flow derive their sources elsewhere) |
+| `tools/inference_test/yaml/<area>.yml` | new file with the `files:` glob and `exclude_entities:` header (include the `olo_private_*` and `olo_<area>_private_*` wildcards) |
+
+Note for pushing: changes under `.github/workflows/` require a GitHub token with the `workflow` OAuth scope
+(`gh auth refresh -h github.com -s workflow`), otherwise the push is rejected.
 
 ### **REVIEW CHECKPOINT — STOP**
 
-Show the user the diff for `compile_order.txt`, `Changelog.md`, and (if touched) `tools/inference_test/yaml/<area>.yml`. **Wait for approval before Phase 6.**
+Show the user the diff for `compile_order.txt`, the regenerated `src/<area>/olo_<area>_dev.core`, and
+`tools/inference_test/yaml/<area>.yml`. **Wait for approval before Phase 6.**
 
 ---
 

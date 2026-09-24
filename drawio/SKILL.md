@@ -12,8 +12,23 @@ Generate draw.io diagrams as native `.drawio` files. Optionally export to PNG, S
 1. **Generate draw.io XML** in mxGraphModel format for the requested diagram
 2. **Write the XML** to a `.drawio` file in the current working directory using the Write tool
 3. **If the user requested an export format** (png, svg, pdf), locate the draw.io CLI (see below), export with `--embed-diagram`, then delete the source `.drawio` file. If the CLI is not found, keep the `.drawio` file and tell the user they can install the draw.io desktop app to enable export, or open the `.drawio` file directly
-4. **Render-and-verify (MANDATORY when exporting to PNG/SVG/JPG).** After exporting an image, immediately use the Read tool on the exported file to visually inspect what was rendered. Check for: (a) every arrow ends on a block boundary (no floating arrows), (b) no overlapping text/labels, (c) labels sit on the intended edges (not on adjacent blocks), (d) parallel/sibling edges aren't bundled into a single line, (e) every cell is inside the page bounds. If any issue is found, fix the XML and re-export — do not present a broken diagram to the user. PDFs and pure-text exports are exempt; everything image-based needs the visual pass.
+4. **Render-and-verify (MANDATORY when exporting to PNG/SVG/JPG).** After exporting an image, immediately use the Read tool on the exported file to visually inspect what was rendered. Check for: (a) every arrow ends on a block boundary (no floating arrows), (b) no overlapping text/labels, (c) labels sit on the intended edges (not on adjacent blocks), (d) parallel/sibling edges aren't bundled into a single line, (e) every cell is inside the page bounds, (f) **the diagram matches the requested SHAPE and any sketch the user gave** — a "U-shape" block must be an actual U, not a box (see `technical-block-diagrams.md`), (g) for technical/port diagrams, **every arrow is straight (pure horizontal/vertical)**. Compare against what the user actually asked for and any sketch they gave — not just "is the XML valid". If any issue is found, fix the XML and re-export — do not present a broken diagram to the user. PDFs and pure-text exports are exempt; everything image-based needs the visual pass.
 5. **Open the result** — the exported file if exported, or the `.drawio` file otherwise. If the open command fails, print the file path so the user can open it manually
+
+## Updating an existing diagram, and precise technical / port diagrams
+
+Two cases need a different approach than the default flowchart flow above — both are covered in
+[`technical-block-diagrams.md`](./technical-block-diagrams.md):
+
+- **Updating an existing diagram.** If it already exists as an editable PNG (`name.drawio.png` — a
+  PNG with the source embedded), update it IN PLACE: re-export over the same file with
+  `--embed-diagram`. Do NOT create a parallel `name.drawio` beside it. You can recover and tweak the
+  embedded source instead of redrawing from scratch.
+- **Precise block / architecture / port diagrams** (entity ports, sub-blocks, signal arrows, and
+  non-rectangular shapes like a "U-shape" wrapper). The flowchart defaults (auto-layout, no
+  `exitX/entryX`) give bendy/diagonal/overlapping arrows. Generate from a parametric script with
+  computed, aligned coordinates and straight edges, and use inline `shape=stencil(...)` for any
+  non-rectangular block.
 
 ## Choosing the output format
 
@@ -113,7 +128,7 @@ Key flags:
 - `-s` / `--scale`: scale the diagram size
 - `--width` / `--height`: fit into specified dimensions (preserves aspect ratio)
 - `-a` / `--all-pages`: export all pages (PDF only)
-- `-p` / `--page-index`: select a specific page (1-based)
+- `-p` / `--page-index`: select a specific page (1-based). **Unreliable for multi-page files** — often exports page 0 regardless. Split the wanted `<diagram>` into its own single-page temp `.drawio` and export that (see `technical-block-diagrams.md`)
 
 ### Opening the result
 
@@ -174,6 +189,22 @@ Three companion files ship with this skill. Read them when the section below say
 XML schema: [`mxfile.xsd`](./mxfile.xsd) — formal schema for `.drawio` files. Consult only to resolve ambiguity about attribute names / types.
 
 **Default workflow:** open `xml-reference.md` before generating any diagram; jump to `style-reference.md` for shape and style lookups as needed.
+
+## Lessons learned (efficiency)
+
+From a long, correction-heavy diagram session — internalize these to avoid repeat round-trips:
+
+1. **Take shape words literally.** "U-shape" means an actual U block (a custom stencil), not a
+   nested or solid box approximation. If the requested shape isn't a drawio built-in, build the
+   stencil up front (see `technical-block-diagrams.md`) — approximating burns whole review rounds.
+2. **Self-review the rendered image against the user's words and sketch, not just "is it valid".**
+   Ask "is this actually a U? are the arrows straight? does it match the sketch?" before sending. A
+   box presented as a "U-shape" is exactly the kind of miss the user should never have to catch.
+3. **Update editable PNGs in place;** inspect the existing artifact and the repo's convention before
+   creating any new file (don't spawn a parallel `.drawio` next to a `.drawio.png`).
+4. **For port/architecture diagrams, generate parametrically and apply the quality checklist to the
+   FIRST version** (straight, boundary-to-boundary, no overlaps, readable arrow length, entity port
+   order, individual signals). Fixing these one at a time across many messages is the slow path.
 
 ## Troubleshooting
 

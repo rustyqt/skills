@@ -1,0 +1,15 @@
+### libero ###
+Libero: version cannot be retrieved from commandline.
+
+# olo_ft_fifo_sync_fmax_wrap w32-ecc0: Fmax(Clk) = 153.210 MHz
+# olo_ft_fifo_sync_fmax_wrap w32-ecc1: Fmax(Clk) = 171.468 MHz
+# olo_ft_fifo_sync_fmax_wrap w32-ecc2: Fmax(Clk) = 226.603 MHz
+### olo_ft_fifo_sync_fmax_wrap - libero ###
++----------+-----------+------+-------+-------+
+|  Config  | Block RAM | DSPs |  LUTs |  SLEs |
++----------+-----------+------+-------+-------+
+| w32-ecc0 |    1.0    | 0.0  | 387.0 | 361.0 |
+| w32-ecc1 |    1.0    | 0.0  | 376.0 | 432.0 |
+| w32-ecc2 |    1.0    | 0.0  | 423.0 | 513.0 |
++----------+-----------+------+-------+-------+
+
