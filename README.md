@@ -10,6 +10,8 @@ subdirectory is one skill — drop it into a project's `.claude/skills/` folder 
 | --- | --- |
 | [`open-logic-dev`](./open-logic-dev) | Six-phase workflow for adding a new entity to the [Open Logic](https://github.com/open-logic/open-logic) VHDL library. Proposal → entity declaration → RTL → testbench → documentation → integration, with a user-review checkpoint at the end of every phase. |
 | [`open-logic-dbg`](./open-logic-dbg) | Diagnose-fix-verify loop for failing or unexpected Open Logic VUnit testbenches. Includes a `wavequery.py` CLI for VCD / WLF inspection across GHDL, NVC and ModelSim / Questa. |
+| [`open-logic-ft-pr`](./open-logic-ft-pr) | Workflow for moving finished fault-tolerant (`ft`) entities upstream to Open Logic: how the backlog branch, the upstream-staging branch and the upstream PR relate, the per-PR cherry-pick and boilerplate checklist, and the verification gate before a PR is opened or refreshed. Ships a `merge_status.md` tracker for live per-PR status. |
+| [`open-logic-inference-test`](./open-logic-inference-test) | Run the Open Logic synthesis inference test (resource inference and Fmax) by driving Libero on Windows, where the upstream Linux-only framework does not run. Ships the portability patches plus the apply / run / revert workflow, and archived Fmax result sets. |
 | [`fpga-module-dev`](./fpga-module-dev) | Six-phase workflow for developing a new FPGA module in a project repository: requirements → architecture & design description → verification plan → RTL → testbenches → verification. Uses VUnit + UVVM, Open Logic as the design library (git submodule), and QuestaSim as the simulator. |
 | [`fpga-module-dbg`](./fpga-module-dbg) | Diagnose-fix-verify loop for failing VUnit + UVVM testbenches in a project repository. Maps each root cause to the right `fpga-module-dev` phase, and ships the same `wavequery.py` CLI for VCD / WLF inspection across GHDL, NVC and ModelSim / Questa. |
 | [`spacefibrelight-dev`](./spacefibrelight-dev) | Issue-driven workflow for bug fixes, standard-compliance changes and new modules in the CNES [SpaceFibre Light](https://github.com/CNES/spacefibrelight) IP, following the repo's own practices: understand the issue → agree the plan → implement and test in a cocotb scenario (bugs reproduced first) → dual-target (Versal + NG-Ultra) regression and PR to `develop`. Encodes the repo's unwritten conventions (naming, VHDL-93, CDC patterns, hand-maintained file lists) and adds no new requirement schemes or documentation. |
@@ -36,7 +38,7 @@ python -m pip install vcdvcd
 
 The FPGA skills come in three flavours: **Open Logic-specific**, **generic FPGA project**, and **SpaceFibre Light-specific**.
 
-### Open Logic skills (`open-logic-dev`, `open-logic-dbg`)
+### Open Logic skills (`open-logic-dev`, `open-logic-dbg`, `open-logic-ft-pr`, `open-logic-inference-test`)
 
 Tailored to the [Open Logic](https://github.com/open-logic/open-logic) library's conventions:
 
@@ -45,6 +47,13 @@ Tailored to the [Open Logic](https://github.com/open-logic/open-logic) library's
 - Test framework: **VUnit** (no UVVM).
 - Simulator priority: **GHDL → NVC → ModelSim / Questa Intel Starter**.
 - Linting: VHDL Style Guide (`vsg`) via `lint/config/vsg_config.yml`.
+
+`open-logic-dev` and `open-logic-dbg` cover building and debugging an
+entity. The other two cover what comes after: `open-logic-ft-pr` is the
+contribution workflow for the fault-tolerant area, which upstream reviews
+one PR at a time, and `open-logic-inference-test` is the synthesis-side
+check. Note that the inference test needs a Windows host with Libero, so
+it is the one skill here that is tied to a specific machine.
 
 ### FPGA module skills (`fpga-module-dev`, `fpga-module-dbg`)
 
